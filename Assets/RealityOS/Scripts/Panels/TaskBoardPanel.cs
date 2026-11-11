@@ -126,6 +126,14 @@ namespace RealityOS.Panels
                 BindTaskItem(itemObj, task);
             }
 
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (var t in _tasks)
+            {
+                string mark = t.status == TaskStatus.Completed ? "[v]" : (t.status == TaskStatus.InProgress ? "[~]" : "[ ]");
+                sb.AppendLine($"{mark} {t.title}");
+            }
+            SetWorldBodyText(sb.ToString());
+
             if (_progressSummaryText != null)
             {
                 int total = _tasks.Count;
@@ -198,3 +206,4 @@ namespace RealityOS.Panels
         }
     }
 }
+

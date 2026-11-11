@@ -42,3 +42,4 @@ To adhere to strict engineering integrity and academic reporting standards, this
 - **Workstation Configuration**: Unity 6 (`6000.6.4f1`) with Unity Personal license.
 - **Constraint**: Unity Personal licenses require the Unity Hub desktop client to be open and signed in. Headless command-line batchmode (`-batchmode`) requires a Unity Pro entitlement or interactive GUI activation.
 - **Solution**: The automated test suite is provided as both NUnit C# tests and an independent Python test runner (`Tests/test_runner.py`), allowing regression testing directly from the CLI without licensing blocks.
+

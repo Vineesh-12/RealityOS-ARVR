@@ -14,3 +14,4 @@ namespace RealityOS.Core
         bool IsContextActionPressed { get; }
     }
 }
+

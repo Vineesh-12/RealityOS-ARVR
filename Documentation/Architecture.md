@@ -115,3 +115,4 @@ public interface IManipulationHandler {
 - **Draw Call Batching**: Dynamic batching and GPU instancing on panel materials.
 - **Lighting**: Single Directional Light with soft shadows; unbaked real-time spatial grid.
 - **Physics**: Lightweight BoxColliders only for raycast targeting; kinematic interpolation instead of costly physics engine solver updates on UI elements.
+

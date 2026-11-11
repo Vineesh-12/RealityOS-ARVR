@@ -19,3 +19,4 @@ namespace RealityOS.Core
         void BringToForeground();
     }
 }
+

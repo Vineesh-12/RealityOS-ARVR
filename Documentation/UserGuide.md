@@ -99,3 +99,4 @@ Simulated XR Mode allows testing of XR Interaction Toolkit mechanics without req
 ### E. Quick Access Panel
 - User-configurable shortcuts to other workspaces or interaction modes.
 - One-click navigation trigger.
+

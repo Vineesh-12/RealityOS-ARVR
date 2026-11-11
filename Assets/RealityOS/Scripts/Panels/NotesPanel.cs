@@ -59,6 +59,7 @@ namespace RealityOS.Panels
             {
                 _notesInputField.text = _currentContent;
             }
+            SetWorldBodyText(_currentContent);
             UpdateCharCount();
         }
 
@@ -84,3 +85,4 @@ namespace RealityOS.Panels
         }
     }
 }
+

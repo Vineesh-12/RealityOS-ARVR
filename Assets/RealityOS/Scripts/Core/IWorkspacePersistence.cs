@@ -12,3 +12,4 @@ namespace RealityOS.Core
         bool WorkspaceExists(string workspaceId);
     }
 }
+

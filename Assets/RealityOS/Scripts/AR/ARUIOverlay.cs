@@ -11,15 +11,15 @@ namespace RealityOS.AR
         [Header("Controller")]
         [SerializeField] private ARWorkspaceController _arController;
 
-        [Header("UI Controls")]
-        [SerializeField] private Button _placePanelButton;
-        [SerializeField] private Button _clearAllButton;
-        [SerializeField] private Button _togglePlanesButton;
-        [SerializeField] private Button _mainMenuButton;
-        [SerializeField] private TMP_Dropdown _panelTypeDropdown;
-        [SerializeField] private TextMeshProUGUI _statusText;
+        private PanelType _selectedType = PanelType.Notes;
+        private string[] _panelTypeNames = new string[] { "Notes", "TaskBoard", "Information", "ObjectViewer", "QuickAccess" };
+        private int _selectedIdx = 0;
 
-        private bool _planesVisible = true;
+        private GUIStyle _headerStyle;
+        private GUIStyle _subStyle;
+        private GUIStyle _btnStyle;
+        private GUIStyle _boxStyle;
+        private bool _stylesInit = false;
 
         private void Start()
         {
@@ -27,91 +27,89 @@ namespace RealityOS.AR
             {
                 _arController = FindAnyObjectByType<ARWorkspaceController>();
             }
-
-            BindButtons();
-            PopulateDropdown();
         }
 
-        private void OnDestroy()
+        private void InitStyles()
         {
-            UnbindButtons();
-        }
+            if (_stylesInit) return;
 
-        private void BindButtons()
-        {
-            if (_placePanelButton != null) _placePanelButton.onClick.AddListener(OnPlaceClicked);
-            if (_clearAllButton != null) _clearAllButton.onClick.AddListener(OnClearClicked);
-            if (_togglePlanesButton != null) _togglePlanesButton.onClick.AddListener(OnTogglePlanesClicked);
-            if (_mainMenuButton != null) _mainMenuButton.onClick.AddListener(OnMainMenuClicked);
-            if (_panelTypeDropdown != null) _panelTypeDropdown.onValueChanged.AddListener(OnDropdownChanged);
-        }
-
-        private void UnbindButtons()
-        {
-            if (_placePanelButton != null) _placePanelButton.onClick.RemoveAllListeners();
-            if (_clearAllButton != null) _clearAllButton.onClick.RemoveAllListeners();
-            if (_togglePlanesButton != null) _togglePlanesButton.onClick.RemoveAllListeners();
-            if (_mainMenuButton != null) _mainMenuButton.onClick.RemoveAllListeners();
-            if (_panelTypeDropdown != null) _panelTypeDropdown.onValueChanged.RemoveAllListeners();
-        }
-
-        private void PopulateDropdown()
-        {
-            if (_panelTypeDropdown == null) return;
-
-            _panelTypeDropdown.ClearOptions();
-            var options = new System.Collections.Generic.List<string>
+            _headerStyle = new GUIStyle(GUI.skin.label)
             {
-                "Notes Panel",
-                "Task Board",
-                "Information",
-                "3D Object Viewer",
-                "Quick Access"
+                fontSize = 15,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleLeft
             };
-            _panelTypeDropdown.AddOptions(options);
+            _headerStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f);
+
+            _subStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12,
+                fontStyle = FontStyle.Normal
+            };
+            _subStyle.normal.textColor = Color.white;
+
+            _btnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 12,
+                fontStyle = FontStyle.Bold
+            };
+            _btnStyle.normal.textColor = Color.white;
+
+            _boxStyle = new GUIStyle(GUI.skin.box);
+            _stylesInit = true;
         }
 
-        private void OnDropdownChanged(int index)
+        private void OnGUI()
         {
-            PanelType selected = (PanelType)index;
-            if (_arController != null)
-            {
-                _arController.SetSelectedPanelType(selected);
-            }
-        }
+            InitStyles();
 
-        private void OnPlaceClicked()
-        {
-            if (_arController != null)
-            {
-                _arController.PlaceSelectedPanelAtReticle();
-            }
-        }
+            // Top Guidance Bar
+            float barW = Mathf.Min(Screen.width - 20, 850);
+            float startX = (Screen.width - barW) * 0.5f;
 
-        private void OnClearClicked()
-        {
-            if (_arController != null)
-            {
-                _arController.ClearAllARPanels();
-            }
-        }
+            GUI.Box(new Rect(startX, 10, barW, 46), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(startX + 14, 16, 260, 26), "RealityOS | Mobile AR Mode", _headerStyle);
 
-        private void OnTogglePlanesClicked()
-        {
-            _planesVisible = !_planesVisible;
-            if (_arController != null)
-            {
-                _arController.TogglePlaneVisualization(_planesVisible);
-            }
-            if (_statusText != null)
-            {
-                _statusText.text = _planesVisible ? "Planes Visible" : "Planes Hidden";
-            }
-        }
+            GUI.Label(new Rect(startX + 260, 18, 440, 24), "Point camera at floor or surface -> Click 'Place Panel'", _subStyle);
 
-        private void OnMainMenuClicked()
-        {
-            SceneNavigationManager.Instance.ReturnToMainMenu();
+            if (GUI.Button(new Rect(startX + barW - 100, 16, 85, 28), "Main Menu", _btnStyle))
+            {
+                SceneNavigationManager.Instance?.ReturnToMainMenu();
+            }
+
+            // Bottom Placement Bar
+            float botW = 680;
+            float botX = (Screen.width - botW) * 0.5f;
+            float botY = Screen.height - 56;
+
+            GUI.Box(new Rect(botX, botY, botW, 46), GUIContent.none, _boxStyle);
+
+            GUI.Label(new Rect(botX + 10, botY + 12, 110, 24), "Spawn Type:", _subStyle);
+
+            float bX = botX + 90;
+            for (int i = 0; i < _panelTypeNames.Length; i++)
+            {
+                bool isSelected = (_selectedIdx == i);
+                GUI.color = isSelected ? Color.cyan : Color.white;
+                if (GUI.Button(new Rect(bX, botY + 10, 75, 26), _panelTypeNames[i], _btnStyle))
+                {
+                    _selectedIdx = i;
+                    _selectedType = (PanelType)i;
+                    _arController?.SetSelectedPanelType(_selectedType);
+                }
+                bX += 80;
+            }
+            GUI.color = Color.white;
+
+            if (GUI.Button(new Rect(bX + 10, botY + 8, 95, 30), "Place Panel", _btnStyle))
+            {
+                _arController?.PlaceSelectedPanelAtReticle();
+            }
+
+            if (GUI.Button(new Rect(bX + 115, botY + 8, 65, 30), "Clear", _btnStyle))
+            {
+                _arController?.ClearAllARPanels();
+            }
         }
     }
 }

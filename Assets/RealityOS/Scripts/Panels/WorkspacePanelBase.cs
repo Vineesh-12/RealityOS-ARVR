@@ -35,8 +35,12 @@ namespace RealityOS.Panels
         [Header("Manipulation & Visuals")]
         [SerializeField] protected float _minScale = 0.4f;
         [SerializeField] protected float _maxScale = 3.0f;
+        [SerializeField] protected Color _defaultBgColor = new Color(0.11f, 0.13f, 0.17f, 0.95f); // #1C212B
+        [SerializeField] protected Color _selectedBgColor = new Color(0.08f, 0.22f, 0.26f, 0.98f);
+        [SerializeField] protected Color _hoveredBgColor = new Color(0.15f, 0.20f, 0.28f, 0.95f);
+
         [SerializeField] protected Color _defaultOutlineColor = new Color(0.2f, 0.25f, 0.32f, 1f);
-        [SerializeField] protected Color _selectedOutlineColor = new Color(0.0f, 0.82f, 0.77f, 1f); // Teal Accent
+        [SerializeField] protected Color _selectedOutlineColor = new Color(0.0f, 0.82f, 0.77f, 1f); // Cyan Accent
         [SerializeField] protected Color _hoveredOutlineColor = new Color(0.4f, 0.6f, 0.9f, 1f);
 
         public bool IsSelected { get; protected set; }
@@ -50,6 +54,10 @@ namespace RealityOS.Panels
         protected bool _useInterpolation = true;
         protected float _lerpSpeed = 15f;
 
+        private Material _backingMaterial;
+        private TextMesh _worldTitleText;
+        private TextMesh _worldBodyText;
+
         protected virtual void Awake()
         {
             _targetPosition = transform.position;
@@ -57,6 +65,7 @@ namespace RealityOS.Panels
             _targetScale = transform.localScale;
 
             EnsureCollider();
+            EnsureVisualBacking();
             UpdateVisualState();
         }
 
@@ -190,9 +199,8 @@ namespace RealityOS.Panels
             Camera cam = Camera.main;
             if (cam != null)
             {
-                // Face towards camera directly
                 Vector3 toCam = (cam.transform.position - transform.position).normalized;
-                _targetRotation = Quaternion.LookRotation(-toCam, Vector3.up);
+                _targetRotation = Quaternion.LookRotation(toCam, Vector3.up);
             }
             else
             {
@@ -252,6 +260,18 @@ namespace RealityOS.Panels
             {
                 _titleText.text = _title;
             }
+            if (_worldTitleText != null)
+            {
+                _worldTitleText.text = $"[{_panelType.ToString().ToUpper()}]\n{_title}";
+            }
+        }
+
+        public void SetWorldBodyText(string content)
+        {
+            if (_worldBodyText != null)
+            {
+                _worldBodyText.text = content;
+            }
         }
 
         protected virtual void UpdateVisualState()
@@ -261,12 +281,14 @@ namespace RealityOS.Panels
                 _selectionHighlight.SetActive(IsSelected || IsHovered);
             }
 
-            if (_panelBackingRenderer != null && _panelBackingRenderer.material != null)
+            if (_panelBackingRenderer != null)
             {
-                Color targetBorder = IsSelected ? _selectedOutlineColor : (IsHovered ? _hoveredOutlineColor : _defaultOutlineColor);
-                if (_panelBackingRenderer.material.HasProperty("_BorderColor"))
+                if (_backingMaterial == null) _backingMaterial = _panelBackingRenderer.material;
+
+                Color targetColor = IsSelected ? _selectedBgColor : (IsHovered ? _hoveredBgColor : _defaultBgColor);
+                if (_backingMaterial != null)
                 {
-                    _panelBackingRenderer.material.SetColor("_BorderColor", targetBorder);
+                    _backingMaterial.color = targetColor;
                 }
             }
         }
@@ -277,7 +299,87 @@ namespace RealityOS.Panels
             if (col == null)
             {
                 col = gameObject.AddComponent<BoxCollider>();
-                col.size = new Vector3(0.8f, 0.6f, 0.05f);
+                col.size = new Vector3(0.9f, 0.65f, 0.05f);
+            }
+        }
+
+        private void EnsureVisualBacking()
+        {
+            if (_panelBackingRenderer == null)
+            {
+                // Check if already created
+                Transform visual = transform.Find("VisualSlab");
+                GameObject slab;
+                if (visual == null)
+                {
+                    slab = GameObject.CreatePrimitive(PrimitiveType.Cube);
+                    slab.name = "VisualSlab";
+                    slab.transform.SetParent(transform, false);
+                    slab.transform.localPosition = Vector3.zero;
+                    slab.transform.localScale = new Vector3(0.9f, 0.65f, 0.03f);
+
+                    // Remove primitive collider so raycast uses parent BoxCollider
+                    Collider c = slab.GetComponent<Collider>();
+                    if (c != null) Destroy(c);
+                }
+                else
+                {
+                    slab = visual.gameObject;
+                }
+
+                _panelBackingRenderer = slab.GetComponent<Renderer>();
+                if (_panelBackingRenderer != null)
+                {
+                    Shader s = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    _backingMaterial = new Material(s);
+                    _backingMaterial.color = _defaultBgColor;
+                    if (_backingMaterial.HasProperty("_Metallic")) _backingMaterial.SetFloat("_Metallic", 0.4f);
+                    if (_backingMaterial.HasProperty("_Glossiness")) _backingMaterial.SetFloat("_Glossiness", 0.6f);
+                    if (_backingMaterial.HasProperty("_Smoothness")) _backingMaterial.SetFloat("_Smoothness", 0.6f);
+                    _panelBackingRenderer.material = _backingMaterial;
+                }
+
+                // Add in-scene 3D Title Text
+                Transform textTrans = transform.Find("3DTitleText");
+                if (textTrans == null)
+                {
+                    GameObject textObj = new GameObject("3DTitleText");
+                    textObj.transform.SetParent(transform, false);
+                    textObj.transform.localPosition = new Vector3(0f, 0.22f, -0.02f);
+                    textObj.transform.localScale = Vector3.one * 0.012f;
+
+                    _worldTitleText = textObj.AddComponent<TextMesh>();
+                    _worldTitleText.fontSize = 32;
+                    _worldTitleText.alignment = TextAlignment.Center;
+                    _worldTitleText.anchor = TextAnchor.MiddleCenter;
+                    _worldTitleText.color = new Color(0.0f, 0.9f, 0.85f); // Cyan
+                    _worldTitleText.text = $"[{_panelType.ToString().ToUpper()}]\n{_title}";
+                }
+                else
+                {
+                    _worldTitleText = textTrans.GetComponent<TextMesh>();
+                }
+
+                // Add in-scene 3D Body Text
+                Transform bodyTrans = transform.Find("3DBodyText");
+                if (bodyTrans == null)
+                {
+                    GameObject bodyObj = new GameObject("3DBodyText");
+                    bodyObj.transform.SetParent(transform, false);
+                    bodyObj.transform.localPosition = new Vector3(-0.4f, 0.08f, -0.02f);
+                    bodyObj.transform.localScale = Vector3.one * 0.009f;
+
+                    _worldBodyText = bodyObj.AddComponent<TextMesh>();
+                    _worldBodyText.fontSize = 24;
+                    _worldBodyText.alignment = TextAlignment.Left;
+                    _worldBodyText.anchor = TextAnchor.UpperLeft;
+                    _worldBodyText.color = Color.white;
+                    _worldBodyText.text = "Click to select\nDrag to move in 3D";
+                }
+                else
+                {
+                    _worldBodyText = bodyTrans.GetComponent<TextMesh>();
+                }
             }
         }
     }

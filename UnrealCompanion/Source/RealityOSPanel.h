@@ -85,3 +85,4 @@ private:
     UPROPERTY(EditDefaultsOnly, Category = "RealityOS|Kinematics")
     float InterpolationSpeed = 12.0f;
 };
+

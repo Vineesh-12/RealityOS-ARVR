@@ -42,6 +42,7 @@ namespace RealityOS.Panels
             {
                 _descriptionText.text = _description;
             }
+            SetWorldBodyText(_description);
 
             if (_metadataText != null)
             {
@@ -70,3 +71,4 @@ namespace RealityOS.Panels
         }
     }
 }
+

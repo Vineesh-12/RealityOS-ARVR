@@ -69,6 +69,7 @@ namespace RealityOS.Core
 
             LoadingProgress = 1f;
             IsLoading = false;
+            ApplicationBootstrap.EnsureSceneSetup(sceneName);
             OnSceneLoadCompleted?.Invoke(sceneName);
             onComplete?.Invoke();
             Debug.Log($"[RealityOS.SceneNavigation] Finished loading scene: {sceneName}");
@@ -96,3 +97,4 @@ namespace RealityOS.Core
         }
     }
 }
+

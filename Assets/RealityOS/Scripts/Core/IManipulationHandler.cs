@@ -16,3 +16,4 @@ namespace RealityOS.Core
         void SetScale(Vector3 newScale);
     }
 }
+

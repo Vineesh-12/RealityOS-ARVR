@@ -111,3 +111,4 @@ To compile the actual ARCore build for an Android smartphone:
    - Scripting Backend: **IL2CPP**.
    - Target Architectures: **ARM64**.
 6. Connect your phone via USB with **USB Debugging** enabled and click **Build and Run**.
+

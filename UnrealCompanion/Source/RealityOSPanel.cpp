@@ -89,3 +89,4 @@ void ARealityOSPanel::ScaleBy(float ScaleMultiplier)
     Scaled.Z = FMath::Clamp(Scaled.Z, 0.4f, 3.0f);
     DesiredScale = Scaled;
 }
+

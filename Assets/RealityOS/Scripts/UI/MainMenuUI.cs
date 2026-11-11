@@ -1,8 +1,6 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.UI;
-using TMPro;
 using RealityOS.Core;
 using RealityOS.Workspace;
 using RealityOS.Persistence;
@@ -11,287 +9,251 @@ namespace RealityOS.UI
 {
     public class MainMenuUI : MonoBehaviour
     {
-        [Header("Mode Selection Buttons")]
-        [SerializeField] private Button _desktopModeButton;
-        [SerializeField] private Button _mobileArModeButton;
-        [SerializeField] private Button _simulatedXrModeButton;
+        private bool _showWorkspaceModal = false;
+        private bool _showHelpModal = false;
+        private string _newWorkspaceName = "New Workspace";
 
-        [Header("Top / Footer Navigation")]
-        [SerializeField] private Button _openWorkspacesButton;
-        [SerializeField] private Button _openSettingsButton;
-        [SerializeField] private Button _openHelpButton;
-        [SerializeField] private Button _exitAppButton;
-
-        [Header("Workspace Management Modal")]
-        [SerializeField] private GameObject _workspacesModal;
-        [SerializeField] private Transform _workspaceListContainer;
-        [SerializeField] private GameObject _workspaceItemPrefab;
-        [SerializeField] private TMP_InputField _newWorkspaceNameInput;
-        [SerializeField] private Button _createNewWorkspaceButton;
-        [SerializeField] private Button _closeWorkspacesButton;
-
-        [Header("Settings Modal")]
-        [SerializeField] private GameObject _settingsModal;
-        [SerializeField] private Slider _mouseSensitivitySlider;
-        [SerializeField] private Slider _cameraSpeedSlider;
-        [SerializeField] private Slider _volumeSlider;
-        [SerializeField] private TMP_Dropdown _graphicsQualityDropdown;
-        [SerializeField] private Toggle _snapTurnToggle;
-        [SerializeField] private Button _resetSettingsButton;
-        [SerializeField] private Button _saveSettingsButton;
-        [SerializeField] private Button _closeSettingsButton;
-
-        [Header("Help Modal")]
-        [SerializeField] private GameObject _helpModal;
-        [SerializeField] private Button _closeHelpButton;
+        private GUIStyle _titleStyle;
+        private GUIStyle _subtitleStyle;
+        private GUIStyle _cardTitleStyle;
+        private GUIStyle _descStyle;
+        private GUIStyle _cardBtnStyle;
+        private GUIStyle _boxStyle;
+        private bool _stylesInitialized = false;
 
         private void Start()
         {
-            BindButtons();
-            RefreshWorkspaceList();
-            InitSettingsUI();
+            // Ensure bootstrap initialized
+            ApplicationBootstrap.AutoBootstrapOnPlay();
         }
 
-        private void OnDestroy()
+        private void InitStyles()
         {
-            UnbindButtons();
+            if (_stylesInitialized) return;
+
+            _titleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 28,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _titleStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f); // Cyan
+
+            _subtitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 13,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _subtitleStyle.normal.textColor = new Color(0.75f, 0.8f, 0.88f);
+
+            _cardTitleStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 17,
+                fontStyle = FontStyle.Bold,
+                alignment = TextAnchor.MiddleCenter
+            };
+            _cardTitleStyle.normal.textColor = Color.white;
+
+            _descStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 12,
+                fontStyle = FontStyle.Normal,
+                alignment = TextAnchor.UpperLeft,
+                wordWrap = true
+            };
+            _descStyle.normal.textColor = new Color(0.8f, 0.85f, 0.9f);
+
+            _cardBtnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 13,
+                fontStyle = FontStyle.Bold
+            };
+            _cardBtnStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f);
+
+            _boxStyle = new GUIStyle(GUI.skin.box);
+
+            _stylesInitialized = true;
         }
 
-        private void BindButtons()
+        private void OnGUI()
         {
-            if (_desktopModeButton != null) _desktopModeButton.onClick.AddListener(() => LaunchMode(InteractionMode.DesktopSpatial));
-            if (_mobileArModeButton != null) _mobileArModeButton.onClick.AddListener(() => LaunchMode(InteractionMode.MobileAR));
-            if (_simulatedXrModeButton != null) _simulatedXrModeButton.onClick.AddListener(() => LaunchMode(InteractionMode.SimulatedXR));
+            InitStyles();
 
-            if (_openWorkspacesButton != null) _openWorkspacesButton.onClick.AddListener(OpenWorkspacesModal);
-            if (_closeWorkspacesButton != null) _closeWorkspacesButton.onClick.AddListener(CloseWorkspacesModal);
-            if (_createNewWorkspaceButton != null) _createNewWorkspaceButton.onClick.AddListener(OnCreateWorkspaceClicked);
+            // Background Header Box
+            float panelW = Mathf.Min(Screen.width - 40, 960);
+            float startX = (Screen.width - panelW) * 0.5f;
 
-            if (_openSettingsButton != null) _openSettingsButton.onClick.AddListener(OpenSettingsModal);
-            if (_closeSettingsButton != null) _closeSettingsButton.onClick.AddListener(CloseSettingsModal);
-            if (_resetSettingsButton != null) _resetSettingsButton.onClick.AddListener(OnResetSettingsClicked);
-            if (_saveSettingsButton != null) _saveSettingsButton.onClick.AddListener(OnSaveSettingsClicked);
+            GUI.Box(new Rect(startX, 25, panelW, 80), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(startX, 32, panelW, 35), "RealityOS", _titleStyle);
+            GUI.Label(new Rect(startX, 68, panelW, 25), "A Multi-Modal Spatial Computing Environment | 21CSE353T", _subtitleStyle);
 
-            if (_openHelpButton != null) _openHelpButton.onClick.AddListener(OpenHelpModal);
-            if (_closeHelpButton != null) _closeHelpButton.onClick.AddListener(CloseHelpModal);
+            // 3 Mode Cards side by side
+            float cardGap = 16;
+            float cardW = (panelW - (cardGap * 2)) / 3.0f;
+            float cardH = 290;
+            float cardY = 125;
 
-            if (_exitAppButton != null) _exitAppButton.onClick.AddListener(OnExitAppClicked);
+            // CARD 1: Desktop Spatial Mode
+            float c1X = startX;
+            GUI.Box(new Rect(c1X, cardY, cardW, cardH), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(c1X + 10, cardY + 15, cardW - 20, 26), "Desktop Spatial Mode", _cardTitleStyle);
+            string d1 = "Navigate a complete 3D spatial workspace using your laptop's mouse and keyboard.\n\n" +
+                        "* Fly with WASD + Mouse Look\n" +
+                        "* 5 Floating 3D panel types\n" +
+                        "* Drag, rotate, resize panels\n" +
+                        "* Local persistent workspace";
+            GUI.Label(new Rect(c1X + 15, cardY + 52, cardW - 30, 160), d1, _descStyle);
+            if (GUI.Button(new Rect(c1X + 20, cardY + cardH - 55, cardW - 40, 38), "Launch Desktop Mode", _cardBtnStyle))
+            {
+                LaunchMode(InteractionMode.DesktopSpatial);
+            }
+
+            // CARD 2: Simulated XR Mode
+            float c2X = c1X + cardW + cardGap;
+            GUI.Box(new Rect(c2X, cardY, cardW, cardH), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(c2X + 10, cardY + 15, cardW - 20, 26), "Simulated XR Mode", _cardTitleStyle);
+            string d2 = "Test Extended Reality (XR) interactions without requiring physical VR headset hardware.\n\n" +
+                        "* Simulated 6-DoF controllers\n" +
+                        "* Laser pointer ray selection\n" +
+                        "* Direct grabbing with 'G' key\n" +
+                        "* 45-deg snap turns & teleport";
+            GUI.Label(new Rect(c2X + 15, cardY + 52, cardW - 30, 160), d2, _descStyle);
+            if (GUI.Button(new Rect(c2X + 20, cardY + cardH - 55, cardW - 40, 38), "Launch Simulated XR", _cardBtnStyle))
+            {
+                LaunchMode(InteractionMode.SimulatedXR);
+            }
+
+            // CARD 3: Mobile AR Mode
+            float c3X = c2X + cardW + cardGap;
+            GUI.Box(new Rect(c3X, cardY, cardW, cardH), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(c3X + 10, cardY + 15, cardW - 20, 26), "Mobile AR Mode", _cardTitleStyle);
+            string d3 = "Real augmented reality bringing digital panels onto detected real-world surfaces.\n\n" +
+                        "* AR Foundation & ARCore\n" +
+                        "* Real physical plane detection\n" +
+                        "* Surface placement reticle\n" +
+                        "* Multi-touch 3D gestures";
+            GUI.Label(new Rect(c3X + 15, cardY + 52, cardW - 30, 160), d3, _descStyle);
+            if (GUI.Button(new Rect(c3X + 20, cardY + cardH - 55, cardW - 40, 38), "Launch Mobile AR", _cardBtnStyle))
+            {
+                LaunchMode(InteractionMode.MobileAR);
+            }
+
+            // Bottom Bar: Workspace Quick Actions
+            float botY = cardY + cardH + 18;
+            GUI.Box(new Rect(startX, botY, panelW, 52), GUIContent.none, _boxStyle);
+
+            string curWs = WorkspaceManager.Instance?.ActiveWorkspace?.workspaceName ?? "Default Workspace";
+            int pCount = WorkspaceManager.Instance?.ActiveWorkspace?.panels?.Count ?? 0;
+            GUI.Label(new Rect(startX + 15, botY + 14, 340, 26), $"Current Workspace: {curWs} ({pCount} panels)", _descStyle);
+
+            if (GUI.Button(new Rect(startX + 370, botY + 10, 150, 32), "Manage Workspaces", GUI.skin.button))
+            {
+                _showWorkspaceModal = true;
+            }
+
+            if (GUI.Button(new Rect(startX + 535, botY + 10, 130, 32), "Controls & Help", GUI.skin.button))
+            {
+                _showHelpModal = true;
+            }
+
+            if (GUI.Button(new Rect(startX + 680, botY + 10, 130, 32), "Reset Sample Data", GUI.skin.button))
+            {
+                if (WorkspaceManager.Instance != null)
+                {
+                    var sample = PersistenceService.CreateSampleDemonstrationWorkspace();
+                    WorkspaceManager.Instance.Persistence.SaveWorkspace(sample);
+                    WorkspaceManager.Instance.LoadWorkspaceById(sample.workspaceId);
+                }
+            }
+
+            // Workspace Management Modal
+            if (_showWorkspaceModal)
+            {
+                DrawWorkspaceModal(startX, cardY, panelW, cardH + 80);
+            }
+
+            // Help Modal
+            if (_showHelpModal)
+            {
+                DrawHelpModal(startX, cardY, panelW, cardH + 80);
+            }
         }
 
-        private void UnbindButtons()
+        private void DrawWorkspaceModal(float x, float y, float w, float h)
         {
-            if (_desktopModeButton != null) _desktopModeButton.onClick.RemoveAllListeners();
-            if (_mobileArModeButton != null) _mobileArModeButton.onClick.RemoveAllListeners();
-            if (_simulatedXrModeButton != null) _simulatedXrModeButton.onClick.RemoveAllListeners();
+            GUI.Box(new Rect(x, y, w, h), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(x + 20, y + 15, w - 40, 28), "Manage Workspaces", _cardTitleStyle);
 
-            if (_openWorkspacesButton != null) _openWorkspacesButton.onClick.RemoveAllListeners();
-            if (_closeWorkspacesButton != null) _closeWorkspacesButton.onClick.RemoveAllListeners();
-            if (_createNewWorkspaceButton != null) _createNewWorkspaceButton.onClick.RemoveAllListeners();
+            GUI.Label(new Rect(x + 30, y + 55, 140, 25), "New Workspace Name:", _descStyle);
+            _newWorkspaceName = GUI.TextField(new Rect(x + 180, y + 55, 240, 25), _newWorkspaceName);
+            if (GUI.Button(new Rect(x + 430, y + 53, 110, 28), "Create New", GUI.skin.button))
+            {
+                WorkspaceManager.Instance?.CreateNewWorkspace(_newWorkspaceName);
+            }
 
-            if (_openSettingsButton != null) _openSettingsButton.onClick.RemoveAllListeners();
-            if (_closeSettingsButton != null) _closeSettingsButton.onClick.RemoveAllListeners();
-            if (_resetSettingsButton != null) _resetSettingsButton.onClick.RemoveAllListeners();
-            if (_saveSettingsButton != null) _saveSettingsButton.onClick.RemoveAllListeners();
+            // List Workspaces
+            var list = WorkspaceManager.Instance?.Persistence.GetAllWorkspaces();
+            if (list != null)
+            {
+                float listY = y + 95;
+                for (int i = 0; i < Mathf.Min(list.Count, 5); i++)
+                {
+                    var ws = list[i];
+                    GUI.Label(new Rect(x + 30, listY, 320, 25), $"{ws.workspaceName} ({ws.panels.Count} panels)", _descStyle);
 
-            if (_openHelpButton != null) _openHelpButton.onClick.RemoveAllListeners();
-            if (_closeHelpButton != null) _closeHelpButton.onClick.RemoveAllListeners();
+                    string id = ws.workspaceId;
+                    if (GUI.Button(new Rect(x + 360, listY, 80, 24), "Load", GUI.skin.button))
+                    {
+                        WorkspaceManager.Instance?.LoadWorkspaceById(id);
+                        _showWorkspaceModal = false;
+                    }
+                    if (GUI.Button(new Rect(x + 450, listY, 80, 24), "Delete", GUI.skin.button))
+                    {
+                        WorkspaceManager.Instance?.DeleteWorkspace(id);
+                    }
+                    listY += 30;
+                }
+            }
 
-            if (_exitAppButton != null) _exitAppButton.onClick.RemoveAllListeners();
+            if (GUI.Button(new Rect(x + (w - 120) * 0.5f, y + h - 42, 120, 30), "Close", _cardBtnStyle))
+            {
+                _showWorkspaceModal = false;
+            }
+        }
+
+        private void DrawHelpModal(float x, float y, float w, float h)
+        {
+            GUI.Box(new Rect(x, y, w, h), GUIContent.none, _boxStyle);
+            GUI.Label(new Rect(x + 20, y + 15, w - 40, 28), "RealityOS Quick Reference Guide", _cardTitleStyle);
+
+            string help =
+                "DESKTOP SPATIAL MODE:\n" +
+                "  * Move: W / A / S / D  |  Sprint: Left Shift  |  Look: Right Mouse Button (Hold & Drag)\n" +
+                "  * Select Panel: Left Click  |  Move Panel: Click & Drag across 3D space\n" +
+                "  * Focus on Panel: Press 'F'  |  Reset Rotation: Press 'R'\n" +
+                "  * Save Workspace: Ctrl + S  |  Duplicate Panel: Ctrl + D  |  Delete: Delete key\n\n" +
+                "SIMULATED XR MODE (No Headset Required):\n" +
+                "  * Laser Pointer: Aim with mouse  |  Trigger Select: Left Click\n" +
+                "  * Grab Panel: Press 'G' (Right Hand Grip) while aiming  |  Release: Release 'G'\n" +
+                "  * Snap Turning: 'Q' (45 deg Left) / 'E' (45 deg Right)\n" +
+                "  * Teleportation: Hold 'T', aim at floor, release 'T'\n\n" +
+                "MOBILE AR MODE:\n" +
+                "  * Surface Detection: Scan physical room  |  Place Panel: Tap 'Place Panel'\n" +
+                "  * Multi-touch: Single-finger drag (move), pinch (scale), two-finger twist (rotate)\n";
+
+            GUI.Label(new Rect(x + 30, y + 50, w - 60, h - 105), help, _descStyle);
+
+            if (GUI.Button(new Rect(x + (w - 120) * 0.5f, y + h - 42, 120, 30), "Close Help", _cardBtnStyle))
+            {
+                _showHelpModal = false;
+            }
         }
 
         private void LaunchMode(InteractionMode mode)
         {
-            if (AppModeManager.Instance != null)
-            {
-                AppModeManager.Instance.SetMode(mode);
-            }
-            if (SceneNavigationManager.Instance != null)
-            {
-                SceneNavigationManager.Instance.LoadModeScene(mode);
-            }
-        }
-
-        public void OpenWorkspacesModal()
-        {
-            RefreshWorkspaceList();
-            if (_workspacesModal != null) _workspacesModal.SetActive(true);
-        }
-
-        public void CloseWorkspacesModal()
-        {
-            if (_workspacesModal != null) _workspacesModal.SetActive(false);
-        }
-
-        private void RefreshWorkspaceList()
-        {
-            if (_workspaceListContainer == null || WorkspaceManager.Instance == null) return;
-
-            for (int i = _workspaceListContainer.childCount - 1; i >= 0; i--)
-            {
-                Destroy(_workspaceListContainer.GetChild(i).gameObject);
-            }
-
-            List<WorkspaceData> all = WorkspaceManager.Instance.Persistence.GetAllWorkspaces();
-            foreach (var ws in all)
-            {
-                CreateWorkspaceEntryUI(ws, _workspaceListContainer);
-            }
-        }
-
-        private void CreateWorkspaceEntryUI(WorkspaceData ws, Transform parent)
-        {
-            GameObject item = new GameObject($"Workspace_{ws.workspaceId}");
-            item.transform.SetParent(parent, false);
-
-            var rt = item.AddComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(480f, 44f);
-
-            var img = item.AddComponent<Image>();
-            img.color = new Color(0.18f, 0.22f, 0.28f, 0.95f);
-
-            // Label
-            GameObject textObj = new GameObject("Title");
-            textObj.transform.SetParent(item.transform, false);
-            var textRt = textObj.AddComponent<RectTransform>();
-            textRt.anchorMin = new Vector2(0f, 0f);
-            textRt.anchorMax = new Vector2(0.65f, 1f);
-            textRt.offsetMin = new Vector2(10f, 0f);
-            textRt.offsetMax = Vector2.zero;
-
-            var tmp = textObj.AddComponent<TextMeshProUGUI>();
-            tmp.text = $"{ws.workspaceName} ({ws.panels.Count} panels)";
-            tmp.fontSize = 14;
-            tmp.alignment = TextAlignmentOptions.MidlineLeft;
-
-            // Load Button
-            GameObject loadBtnObj = new GameObject("LoadBtn");
-            loadBtnObj.transform.SetParent(item.transform, false);
-            var loadRt = loadBtnObj.AddComponent<RectTransform>();
-            loadRt.anchorMin = new Vector2(0.68f, 0.15f);
-            loadRt.anchorMax = new Vector2(0.82f, 0.85f);
-            loadRt.offsetMin = Vector2.zero;
-            loadRt.offsetMax = Vector2.zero;
-            var loadImg = loadBtnObj.AddComponent<Image>();
-            loadImg.color = new Color(0f, 0.65f, 0.6f);
-            var loadBtn = loadBtnObj.AddComponent<Button>();
-            string idCopy = ws.workspaceId;
-            loadBtn.onClick.AddListener(() =>
-            {
-                WorkspaceManager.Instance.LoadWorkspaceById(idCopy);
-                CloseWorkspacesModal();
-            });
-
-            GameObject loadTxt = new GameObject("Text");
-            loadTxt.transform.SetParent(loadBtnObj.transform, false);
-            var loadTxtRt = loadTxt.AddComponent<RectTransform>();
-            loadTxtRt.anchorMin = Vector2.zero;
-            loadTxtRt.anchorMax = Vector2.one;
-            var loadTmp = loadTxt.AddComponent<TextMeshProUGUI>();
-            loadTmp.text = "Load";
-            loadTmp.fontSize = 12;
-            loadTmp.alignment = TextAlignmentOptions.Center;
-
-            // Delete Button
-            GameObject delBtnObj = new GameObject("DelBtn");
-            delBtnObj.transform.SetParent(item.transform, false);
-            var delRt = delBtnObj.AddComponent<RectTransform>();
-            delRt.anchorMin = new Vector2(0.84f, 0.15f);
-            delRt.anchorMax = new Vector2(0.98f, 0.85f);
-            delRt.offsetMin = Vector2.zero;
-            delRt.offsetMax = Vector2.zero;
-            var delImg = delBtnObj.AddComponent<Image>();
-            delImg.color = new Color(0.8f, 0.25f, 0.25f);
-            var delBtn = delBtnObj.AddComponent<Button>();
-            delBtn.onClick.AddListener(() =>
-            {
-                WorkspaceManager.Instance.DeleteWorkspace(idCopy);
-                RefreshWorkspaceList();
-            });
-
-            GameObject delTxt = new GameObject("Text");
-            delTxt.transform.SetParent(delBtnObj.transform, false);
-            var delTxtRt = delTxt.AddComponent<RectTransform>();
-            delTxtRt.anchorMin = Vector2.zero;
-            delTxtRt.anchorMax = Vector2.one;
-            var delTmp = delTxt.AddComponent<TextMeshProUGUI>();
-            delTmp.text = "Del";
-            delTmp.fontSize = 12;
-            delTmp.alignment = TextAlignmentOptions.Center;
-        }
-
-        private void OnCreateWorkspaceClicked()
-        {
-            if (_newWorkspaceNameInput != null && !string.IsNullOrWhiteSpace(_newWorkspaceNameInput.text))
-            {
-                WorkspaceManager.Instance.CreateNewWorkspace(_newWorkspaceNameInput.text);
-                _newWorkspaceNameInput.text = "";
-                RefreshWorkspaceList();
-            }
-        }
-
-        public void OpenSettingsModal()
-        {
-            InitSettingsUI();
-            if (_settingsModal != null) _settingsModal.SetActive(true);
-        }
-
-        public void CloseSettingsModal()
-        {
-            if (_settingsModal != null) _settingsModal.SetActive(false);
-        }
-
-        private void InitSettingsUI()
-        {
-            if (SettingsManager.Instance == null) return;
-            var cur = SettingsManager.Instance.Current;
-
-            if (_mouseSensitivitySlider != null) _mouseSensitivitySlider.value = cur.mouseSensitivity;
-            if (_cameraSpeedSlider != null) _cameraSpeedSlider.value = cur.cameraMoveSpeed;
-            if (_volumeSlider != null) _volumeSlider.value = cur.masterVolume;
-            if (_graphicsQualityDropdown != null) _graphicsQualityDropdown.value = cur.graphicsQualityLevel;
-            if (_snapTurnToggle != null) _snapTurnToggle.isOn = cur.comfortSnapTurn;
-        }
-
-        private void OnSaveSettingsClicked()
-        {
-            if (SettingsManager.Instance == null) return;
-
-            if (_mouseSensitivitySlider != null) SettingsManager.Instance.SetMouseSensitivity(_mouseSensitivitySlider.value);
-            if (_cameraSpeedSlider != null) SettingsManager.Instance.SetCameraMoveSpeed(_cameraSpeedSlider.value);
-            if (_volumeSlider != null) SettingsManager.Instance.SetMasterVolume(_volumeSlider.value);
-            if (_graphicsQualityDropdown != null) SettingsManager.Instance.SetGraphicsQuality(_graphicsQualityDropdown.value);
-            if (_snapTurnToggle != null) SettingsManager.Instance.SetComfortSnapTurn(_snapTurnToggle.isOn);
-
-            SettingsManager.Instance.SaveSettings();
-            CloseSettingsModal();
-        }
-
-        private void OnResetSettingsClicked()
-        {
-            if (SettingsManager.Instance != null)
-            {
-                SettingsManager.Instance.ResetToDefaults();
-                InitSettingsUI();
-            }
-        }
-
-        public void OpenHelpModal()
-        {
-            if (_helpModal != null) _helpModal.SetActive(true);
-        }
-
-        public void CloseHelpModal()
-        {
-            if (_helpModal != null) _helpModal.SetActive(false);
-        }
-
-        private void OnExitAppClicked()
-        {
-#if UNITY_EDITOR
-            UnityEditor.EditorApplication.isPlaying = false;
-#else
-            Application.Quit();
-#endif
+            AppModeManager.Instance?.SetMode(mode);
+            SceneNavigationManager.Instance?.LoadModeScene(mode);
         }
     }
 }

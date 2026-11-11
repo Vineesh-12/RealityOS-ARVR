@@ -79,10 +79,13 @@ namespace RealityOS.Panels
                 Destroy(_itemsContainer.GetChild(i).gameObject);
             }
 
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
             foreach (var link in _quickLinks)
             {
                 GameObject item = CreateProceduralLinkItem(link, _itemsContainer);
+                sb.AppendLine($"> {link}");
             }
+            SetWorldBodyText(sb.ToString());
         }
 
         private GameObject CreateProceduralLinkItem(string title, Transform parent)
@@ -150,3 +153,4 @@ namespace RealityOS.Panels
         }
     }
 }
+

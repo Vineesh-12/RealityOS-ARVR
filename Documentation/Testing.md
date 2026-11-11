@@ -67,3 +67,4 @@ The automated regression test suite (`Tests/test_runner.py`) was executed in the
 - [x] Lightweight colliders (BoxCollider only) minimize physics engine load.
 - [x] Unnecessary `Update()` calls avoided across UI components.
 - [x] Quality levels (Low, Medium, High) adjust shadows and rendering scale dynamically.
+

@@ -169,3 +169,4 @@ namespace RealityOS.Persistence
         public float snapTurnAngle = 45f;
     }
 }
+

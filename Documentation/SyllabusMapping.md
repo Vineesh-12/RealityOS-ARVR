@@ -39,3 +39,4 @@
 ### CO5: Create UI for VR applications
 - **Demonstration**: Designed and implemented 5 distinct floating spatial panels (Notes, Task Board, Information, 3D Object Viewer, Quick Access) featuring world-space UI controls, move/resize/rotate handles, and visual feedback without relying on traditional 2D window borders.
 - **Status**: **Fully Satisfied**.
+

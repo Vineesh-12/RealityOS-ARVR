@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!1045 &1
+EditorBuildSettings:
+  m_ObjectHideFlags: 0
+  serializedVersion: 2
+  m_Scenes:
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/Bootstrap.unity
+    guid: 73d1bfc3454c396d1fee2bbe2cadc6af
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/MainMenu.unity
+    guid: 280ecd604658945560d815ed7a805b5e
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/DesktopWorkspace.unity
+    guid: 079c848db3d7b5f1f7eb0257762046c2
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/ARWorkspace.unity
+    guid: e75916f55bbcce84244127a61c15871b
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/XRSimulator.unity
+    guid: 5c087d8e9cf3cc561460c276b779605f
+  - enabled: 1
+    path: Assets/RealityOS/Scenes/DemoWorkspace.unity
+    guid: a24f28b8861dcbc697dcf83ac04618e9
+  m_configObjects: {}

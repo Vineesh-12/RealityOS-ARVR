@@ -182,6 +182,16 @@ namespace RealityOS.Desktop
             _yaw = 0f;
             transform.rotation = Quaternion.identity;
         }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                _isLooking = false;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+        }
     }
 }
 

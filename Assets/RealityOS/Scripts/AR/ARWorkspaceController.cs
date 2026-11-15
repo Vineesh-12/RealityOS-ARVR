@@ -44,6 +44,8 @@ namespace RealityOS.AR
 #endif
             if (_placementReticle == null) _placementReticle = FindAnyObjectByType<ARPlacementReticle>();
             if (_gestureHandler == null) _gestureHandler = FindAnyObjectByType<ARTouchGestureHandler>();
+
+            EnsureSceneElements();
         }
 
         private void Start()
@@ -55,6 +57,21 @@ namespace RealityOS.AR
         private void Update()
         {
             UpdateTrackingStatus();
+        }
+
+        private void EnsureSceneElements()
+        {
+            if (FindAnyObjectByType<SpatialReferenceGrid>() == null)
+            {
+                GameObject gridObj = new GameObject("SpatialGrid");
+                gridObj.AddComponent<SpatialReferenceGrid>();
+            }
+
+            if (_placementReticle == null)
+            {
+                GameObject retObj = new GameObject("ARPlacementReticle");
+                _placementReticle = retObj.AddComponent<ARPlacementReticle>();
+            }
         }
 
         private void CheckDeviceCompatibility()
@@ -131,20 +148,23 @@ namespace RealityOS.AR
 
         public void PlaceSelectedPanelAtReticle()
         {
-            if (_placementReticle == null || !_placementReticle.IsValidPlacement)
-            {
-                UpdateGuidanceMessage("Cannot place panel: point at a detected physical surface.");
-                return;
-            }
-
-            Pose pose = _placementReticle.CurrentPose;
-            Vector3 spawnPos = pose.position + Vector3.up * 0.15f; // Slight elevation above plane
-
-            // Orient panel facing camera
+            Vector3 spawnPos;
+            Quaternion rot;
             Camera cam = Camera.main;
-            Quaternion rot = cam != null
-                ? Quaternion.LookRotation(cam.transform.forward, Vector3.up)
-                : pose.rotation;
+
+            if (_placementReticle != null && _placementReticle.IsValidPlacement)
+            {
+                Pose pose = _placementReticle.CurrentPose;
+                spawnPos = pose.position + Vector3.up * 0.15f;
+                rot = cam != null
+                    ? Quaternion.LookRotation(cam.transform.forward, Vector3.up)
+                    : pose.rotation;
+            }
+            else
+            {
+                spawnPos = cam != null ? cam.transform.position + cam.transform.forward * 1.5f : new Vector3(0f, 1.2f, 1.5f);
+                rot = cam != null ? cam.transform.rotation : Quaternion.identity;
+            }
 
             if (WorkspaceManager.Instance != null)
             {
@@ -154,7 +174,6 @@ namespace RealityOS.AR
                     panelObj.transform.rotation = rot;
 
 #if UNITY_XR_ARFOUNDATION
-                    // Try to attach AR anchor to keep panel locked to real world coordinates
                     if (_anchorManager != null)
                     {
                         ARAnchor anchor = panelObj.AddComponent<ARAnchor>();
@@ -206,4 +225,3 @@ namespace RealityOS.AR
         }
     }
 }
-

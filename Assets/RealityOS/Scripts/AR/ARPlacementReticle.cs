@@ -12,8 +12,8 @@ namespace RealityOS.AR
         [Header("Visual Elements")]
         [SerializeField] private GameObject _visualChild;
         [SerializeField] private Renderer _reticleRenderer;
-        [SerializeField] private Color _validColor = new Color(0f, 0.82f, 0.77f, 0.8f);
-        [SerializeField] private Color _invalidColor = new Color(1f, 0.3f, 0.3f, 0.4f);
+        [SerializeField] private Color _validColor = new Color(0f, 0.95f, 0.9f, 0.85f);
+        [SerializeField] private Color _invalidColor = new Color(1f, 0.3f, 0.3f, 0.5f);
 
         [Header("Smoothing")]
         [SerializeField] private float _positionLerpSpeed = 15f;
@@ -35,7 +35,8 @@ namespace RealityOS.AR
                 _raycastManager = FindAnyObjectByType<ARRaycastManager>();
             }
 #endif
-            SetVisualVisible(false);
+            EnsureReticleVisual();
+            SetVisualVisible(true);
         }
 
         private void Update()
@@ -43,8 +44,35 @@ namespace RealityOS.AR
             UpdatePlacement();
         }
 
+        private void EnsureReticleVisual()
+        {
+            if (_visualChild == null)
+            {
+                GameObject cylinder = GameObject.CreatePrimitive(PrimitiveType.Cylinder);
+                cylinder.name = "ReticleVisualCircle";
+                cylinder.transform.SetParent(transform, false);
+                cylinder.transform.localPosition = Vector3.zero;
+                cylinder.transform.localScale = new Vector3(0.4f, 0.005f, 0.4f);
+
+                Collider col = cylinder.GetComponent<Collider>();
+                if (col != null) Destroy(col);
+
+                _reticleRenderer = cylinder.GetComponent<Renderer>();
+                if (_reticleRenderer != null)
+                {
+                    Shader s = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material m = new Material(s);
+                    m.color = _validColor;
+                    _reticleRenderer.material = m;
+                }
+                _visualChild = cylinder;
+            }
+        }
+
         private void UpdatePlacement()
         {
+            EnsureReticleVisual();
+
 #if UNITY_XR_ARFOUNDATION
             if (_raycastManager != null)
             {
@@ -65,9 +93,11 @@ namespace RealityOS.AR
             }
 #endif
 
-            // Editor or Fallback simulation: Raycast against ground plane
-            Ray ray = Camera.main != null ? Camera.main.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f)) : new Ray(Vector3.zero, Vector3.forward);
+            // Fallback simulated ground plane raycast
+            Camera cam = Camera.main;
+            Ray ray = cam != null ? cam.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f)) : new Ray(Vector3.up * 1.5f, Vector3.down);
             Plane groundPlane = new Plane(Vector3.up, Vector3.zero);
+
             if (groundPlane.Raycast(ray, out float enter))
             {
                 Vector3 pt = ray.GetPoint(enter);
@@ -80,8 +110,22 @@ namespace RealityOS.AR
             }
             else
             {
-                IsValidPlacement = false;
-                SetVisualVisible(false);
+                // Place 2m in front of camera
+                if (cam != null)
+                {
+                    Vector3 forwardPos = cam.transform.position + cam.transform.forward * 2.0f;
+                    forwardPos.y = 0f;
+                    CurrentPose = new Pose(forwardPos, Quaternion.identity);
+                    transform.position = forwardPos;
+                    IsValidPlacement = true;
+                    SetVisualVisible(true);
+                    SetColor(_validColor);
+                }
+                else
+                {
+                    IsValidPlacement = false;
+                    SetVisualVisible(false);
+                }
             }
         }
 
@@ -102,4 +146,3 @@ namespace RealityOS.AR
         }
     }
 }
-

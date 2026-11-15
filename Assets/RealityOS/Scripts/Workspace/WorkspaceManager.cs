@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using RealityOS.Core;
 using RealityOS.Persistence;
 
@@ -19,7 +20,14 @@ namespace RealityOS.Workspace
         public WorkspaceData ActiveWorkspace => _activeWorkspace;
 
         private readonly List<IWorkspacePanel> _activePanels = new List<IWorkspacePanel>();
-        public IReadOnlyList<IWorkspacePanel> ActivePanels => _activePanels;
+        public IReadOnlyList<IWorkspacePanel> ActivePanels
+        {
+            get
+            {
+                PruneDeadPanels();
+                return _activePanels;
+            }
+        }
 
         [Header("Prefab References")]
         [SerializeField] private GameObject _notesPanelPrefab;
@@ -57,7 +65,6 @@ namespace RealityOS.Workspace
 
             if (_activeWorkspace == null)
             {
-                // Load first workspace or generate sample
                 List<WorkspaceData> all = _persistence.GetAllWorkspaces();
                 if (all != null && all.Count > 0)
                 {
@@ -68,6 +75,36 @@ namespace RealityOS.Workspace
                     _activeWorkspace = PersistenceService.CreateSampleDemonstrationWorkspace();
                     _persistence.SaveWorkspace(_activeWorkspace);
                 }
+            }
+        }
+
+        private void OnEnable()
+        {
+            SceneManager.sceneLoaded += OnSceneLoaded;
+        }
+
+        private void OnDisable()
+        {
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        private void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            PruneDeadPanels();
+
+            if (scene.name == SceneNavigationManager.SCENE_DESKTOP_WORKSPACE ||
+                scene.name == SceneNavigationManager.SCENE_DEMO_WORKSPACE ||
+                scene.name == SceneNavigationManager.SCENE_XR_SIMULATOR)
+            {
+                if (_activePanels.Count == 0)
+                {
+                    ReconstructPanelsInScene();
+                }
+            }
+            else if (scene.name == SceneNavigationManager.SCENE_MAIN_MENU)
+            {
+                _activePanels.Clear();
+                SelectedPanel = null;
             }
         }
 
@@ -84,18 +121,18 @@ namespace RealityOS.Workspace
             }
         }
 
+        public void PruneDeadPanels()
+        {
+            _activePanels.RemoveAll(p => p == null || (p is MonoBehaviour mb && mb == null));
+            if (SelectedPanel != null && SelectedPanel is MonoBehaviour selMb && selMb == null)
+            {
+                SelectedPanel = null;
+            }
+        }
+
         public void SetPanelsParent(Transform parent)
         {
             _panelsParent = parent;
-        }
-
-        public void SetPanelPrefabs(GameObject notes, GameObject tasks, GameObject info, GameObject viewer, GameObject quick)
-        {
-            _notesPanelPrefab = notes;
-            _taskBoardPanelPrefab = tasks;
-            _informationPanelPrefab = info;
-            _objectViewerPanelPrefab = viewer;
-            _quickAccessPanelPrefab = quick;
         }
 
         public void CreateNewWorkspace(string name, string description = "")
@@ -125,11 +162,16 @@ namespace RealityOS.Workspace
         {
             if (_activeWorkspace == null) return false;
 
+            PruneDeadPanels();
+
             // Collect current states from active panels
             _activeWorkspace.panels.Clear();
             foreach (var panel in _activePanels)
             {
-                _activeWorkspace.panels.Add(panel.ExportData());
+                if (panel != null)
+                {
+                    _activeWorkspace.panels.Add(panel.ExportData());
+                }
             }
 
             bool success = _persistence.SaveWorkspace(_activeWorkspace);
@@ -231,14 +273,12 @@ namespace RealityOS.Workspace
             }
             else
             {
-                // Fallback procedural panel creation if prefab reference is not yet wired
                 instance = CreateProceduralPanelFallback(type, pos, parent);
             }
 
             IWorkspacePanel panel = instance.GetComponent<IWorkspacePanel>();
             if (panel != null)
             {
-                panel.Title = $"{type} Panel";
                 RegisterPanel(panel);
                 SelectPanel(panel);
             }
@@ -282,7 +322,7 @@ namespace RealityOS.Workspace
             if (panel == null) return;
 
             UnregisterPanel(panel);
-            if (panel is MonoBehaviour mb)
+            if (panel is MonoBehaviour mb && mb != null)
             {
                 Destroy(mb.gameObject);
             }
@@ -326,6 +366,7 @@ namespace RealityOS.Workspace
 
         public void ClearPanelsInScene()
         {
+            PruneDeadPanels();
             var copy = new List<IWorkspacePanel>(_activePanels);
             foreach (var p in copy)
             {
@@ -340,6 +381,7 @@ namespace RealityOS.Workspace
 
         public void ArrangeInCurvedArc(float radius = 2.2f)
         {
+            PruneDeadPanels();
             if (_activePanels.Count == 0) return;
 
             int count = _activePanels.Count;
@@ -349,6 +391,8 @@ namespace RealityOS.Workspace
 
             for (int i = 0; i < count; i++)
             {
+                if (_activePanels[i] == null) continue;
+
                 float angle = startAngle + i * step;
                 float rad = angle * Mathf.Deg2Rad;
                 Vector3 pos = new Vector3(Mathf.Sin(rad) * radius, 1.3f, Mathf.Cos(rad) * radius);
@@ -360,8 +404,9 @@ namespace RealityOS.Workspace
             MarkDirty();
         }
 
-        public void ArrangeInHorizontalGrid(float spacingX = 0.9f)
+        public void ArrangeInHorizontalGrid(float spacingX = 0.95f)
         {
+            PruneDeadPanels();
             if (_activePanels.Count == 0) return;
 
             int count = _activePanels.Count;
@@ -369,6 +414,8 @@ namespace RealityOS.Workspace
 
             for (int i = 0; i < count; i++)
             {
+                if (_activePanels[i] == null) continue;
+
                 Vector3 pos = new Vector3(startX + i * spacingX, 1.3f, 2.0f);
                 _activePanels[i].TransformTarget.position = pos;
                 _activePanels[i].TransformTarget.rotation = Quaternion.identity;
@@ -403,29 +450,32 @@ namespace RealityOS.Workspace
         {
             GameObject go = new GameObject($"{type}Panel_Instance");
             go.transform.position = pos;
-            go.transform.SetParent(parent, true);
+            if (parent != null) go.transform.SetParent(parent, true);
 
-            // Add collider for spatial raycasting
             BoxCollider col = go.AddComponent<BoxCollider>();
-            col.size = new Vector3(0.8f, 0.6f, 0.05f);
+            col.size = new Vector3(0.9f, 0.65f, 0.05f);
 
-            // Add panel script based on type
             switch (type)
             {
                 case PanelType.Notes:
-                    go.AddComponent<RealityOS.Panels.NotesPanel>();
+                    var notes = go.AddComponent<RealityOS.Panels.NotesPanel>();
+                    notes.Title = "Notes";
                     break;
                 case PanelType.TaskBoard:
-                    go.AddComponent<RealityOS.Panels.TaskBoardPanel>();
+                    var tasks = go.AddComponent<RealityOS.Panels.TaskBoardPanel>();
+                    tasks.Title = "Sprint Tasks";
                     break;
                 case PanelType.Information:
-                    go.AddComponent<RealityOS.Panels.InformationPanel>();
+                    var info = go.AddComponent<RealityOS.Panels.InformationPanel>();
+                    info.Title = "Information";
                     break;
                 case PanelType.ObjectViewer:
-                    go.AddComponent<RealityOS.Panels.ObjectViewerPanel>();
+                    var viewer = go.AddComponent<RealityOS.Panels.ObjectViewerPanel>();
+                    viewer.Title = "3D Object Viewer";
                     break;
                 case PanelType.QuickAccess:
-                    go.AddComponent<RealityOS.Panels.QuickAccessPanel>();
+                    var quick = go.AddComponent<RealityOS.Panels.QuickAccessPanel>();
+                    quick.Title = "Quick Access";
                     break;
             }
 
@@ -433,4 +483,3 @@ namespace RealityOS.Workspace
         }
     }
 }
-

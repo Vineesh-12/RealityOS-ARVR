@@ -15,11 +15,11 @@ namespace RealityOS.XR
         [SerializeField] private XRSimulatedController _rightHand;
         [SerializeField] private XRLocomotionProvider _locomotion;
 
-        [Header("UI Overlay")]
-        [SerializeField] private GameObject _controlsGuideModal;
-        [SerializeField] private Button _toggleGuideButton;
-        [SerializeField] private Button _mainMenuButton;
-        [SerializeField] private TextMeshProUGUI _modeNoticeText;
+        [Header("Camera Look Settings")]
+        [SerializeField] private float _lookSensitivity = 2.0f;
+        private float _yaw = 0f;
+        private float _pitch = 0f;
+        private bool _isLooking = false;
 
         private GUIStyle _headerStyle;
         private GUIStyle _subStyle;
@@ -31,10 +31,55 @@ namespace RealityOS.XR
         {
             EnsureXRRig();
 
-            // Spawn sample panels in XR space if none exist
             if (WorkspaceManager.Instance != null && WorkspaceManager.Instance.ActivePanels.Count == 0)
             {
                 WorkspaceManager.Instance.ReconstructPanelsInScene();
+            }
+        }
+
+        private void Update()
+        {
+            HandleCameraLook();
+        }
+
+        private void HandleCameraLook()
+        {
+            if (_xrCamera == null) _xrCamera = Camera.main;
+            if (_xrCamera == null) return;
+
+            if (Input.GetMouseButtonDown(1))
+            {
+                _isLooking = true;
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
+            else if (Input.GetMouseButtonUp(1))
+            {
+                _isLooking = false;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
+            }
+
+            if (_isLooking)
+            {
+                float mx = Input.GetAxis("Mouse X") * _lookSensitivity;
+                float my = Input.GetAxis("Mouse Y") * _lookSensitivity;
+
+                _yaw += mx;
+                _pitch -= my;
+                _pitch = Mathf.Clamp(_pitch, -75f, 75f);
+
+                _xrCamera.transform.localRotation = Quaternion.Euler(_pitch, _yaw, 0f);
+            }
+        }
+
+        private void OnApplicationFocus(bool hasFocus)
+        {
+            if (!hasFocus)
+            {
+                _isLooking = false;
+                Cursor.lockState = CursorLockMode.None;
+                Cursor.visible = true;
             }
         }
 
@@ -47,13 +92,19 @@ namespace RealityOS.XR
                 Transform rh = transform.Find("RightHand_Simulator");
                 GameObject rhObj = rh != null ? rh.gameObject : new GameObject("RightHand_Simulator");
                 rhObj.transform.SetParent(transform, false);
-                rhObj.transform.localPosition = new Vector3(0.2f, 1.1f, 0.4f);
                 _rightHand = rhObj.GetComponent<XRSimulatedController>() ?? rhObj.AddComponent<XRSimulatedController>();
             }
 
             if (_locomotion == null)
             {
                 _locomotion = GetComponent<XRLocomotionProvider>() ?? gameObject.AddComponent<XRLocomotionProvider>();
+            }
+
+            // Ensure floor grid in XR scene
+            if (FindAnyObjectByType<SpatialReferenceGrid>() == null)
+            {
+                GameObject gridObj = new GameObject("SpatialGrid");
+                gridObj.AddComponent<SpatialReferenceGrid>();
             }
         }
 
@@ -96,12 +147,12 @@ namespace RealityOS.XR
             float startX = (Screen.width - barW) * 0.5f;
 
             GUI.Box(new Rect(startX, 10, barW, 46), GUIContent.none, _boxStyle);
-            GUI.Label(new Rect(startX + 14, 16, 320, 26), "RealityOS | Simulated XR Mode", _headerStyle);
+            GUI.Label(new Rect(startX + 14, 16, 280, 26), "RealityOS | Simulated XR Mode", _headerStyle);
 
             string controls = "Aim: Mouse | Trigger: Left Click | Grab: Hold 'G' | Snap Turn: Q/E (45 deg) | Teleport: Hold 'T'";
-            GUI.Label(new Rect(startX + 280, 18, 520, 24), controls, _subStyle);
+            GUI.Label(new Rect(startX + 270, 18, 560, 24), controls, _subStyle);
 
-            if (GUI.Button(new Rect(startX + barW - 100, 16, 85, 28), "Main Menu", _btnStyle))
+            if (GUI.Button(new Rect(startX + barW - 95, 12, 85, 30), "Main Menu", _btnStyle))
             {
                 SceneNavigationManager.Instance?.ReturnToMainMenu();
             }

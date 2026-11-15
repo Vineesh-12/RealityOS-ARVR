@@ -13,29 +13,49 @@ namespace RealityOS.XR
         [SerializeField] private HandType _hand = HandType.Right;
         [SerializeField] private LineRenderer _rayRenderer;
         [SerializeField] private Transform _reticleVisual;
-        [SerializeField] private float _maxRayDistance = 10f;
+        [SerializeField] private float _maxRayDistance = 12f;
         [SerializeField] private LayerMask _raycastLayers = ~0;
-
-        [Header("Controller Visual")]
-        [SerializeField] private GameObject _controllerModel;
 
         public bool IsGrabbing { get; private set; }
         public WorkspacePanelBase GrabbedPanel { get; private set; }
 
-        private Vector3 _initialGrabLocalPos;
-        private Quaternion _initialGrabLocalRot;
+        private float _grabDistance = 2.0f;
         private WorkspacePanelBase _hoveredPanel;
+        private Camera _mainCamera;
 
         private void Awake()
         {
+            _mainCamera = Camera.main;
             EnsureLineRenderer();
             EnsureReticle();
         }
 
         private void Update()
         {
+            if (_mainCamera == null) _mainCamera = Camera.main;
+
+            AlignWithCameraAndMouse();
             UpdateRaycast();
             HandleInputs();
+        }
+
+        private void AlignWithCameraAndMouse()
+        {
+            if (_mainCamera == null) return;
+
+            // Anchor hand relative to camera
+            float lateralOffset = (_hand == HandType.Right) ? 0.24f : -0.24f;
+            Vector3 handPos = _mainCamera.transform.position
+                + _mainCamera.transform.right * lateralOffset
+                + _mainCamera.transform.up * -0.18f
+                + _mainCamera.transform.forward * 0.38f;
+
+            transform.position = handPos;
+
+            // Aim controller along mouse screen ray
+            Ray mouseRay = _mainCamera.ScreenPointToRay(Input.mousePosition);
+            Vector3 aimTarget = mouseRay.origin + mouseRay.direction * _maxRayDistance;
+            transform.LookAt(aimTarget);
         }
 
         private void UpdateRaycast()
@@ -44,38 +64,53 @@ namespace RealityOS.XR
             Vector3 direction = transform.forward;
             Vector3 endPoint = origin + direction * _maxRayDistance;
 
-            if (Physics.Raycast(origin, direction, out RaycastHit hit, _maxRayDistance, _raycastLayers))
+            if (!IsGrabbing)
             {
-                endPoint = hit.point;
-
-                WorkspacePanelBase panel = hit.collider.GetComponentInParent<WorkspacePanelBase>();
-                if (panel != null)
+                if (Physics.Raycast(origin, direction, out RaycastHit hit, _maxRayDistance, _raycastLayers))
                 {
-                    if (_hoveredPanel != panel)
+                    endPoint = hit.point;
+
+                    WorkspacePanelBase panel = hit.collider.GetComponentInParent<WorkspacePanelBase>();
+                    if (panel != null)
+                    {
+                        if (_hoveredPanel != panel)
+                        {
+                            ClearHover();
+                            _hoveredPanel = panel;
+                            _hoveredPanel.OnHoverEnter();
+                        }
+                    }
+                    else
                     {
                         ClearHover();
-                        _hoveredPanel = panel;
-                        _hoveredPanel.OnHoverEnter();
+                    }
+
+                    if (_reticleVisual != null)
+                    {
+                        _reticleVisual.gameObject.SetActive(true);
+                        _reticleVisual.position = hit.point;
+                        _reticleVisual.rotation = Quaternion.LookRotation(hit.normal);
                     }
                 }
                 else
                 {
                     ClearHover();
+                    if (_reticleVisual != null)
+                    {
+                        _reticleVisual.gameObject.SetActive(false);
+                    }
                 }
+            }
+            else if (GrabbedPanel != null)
+            {
+                // While grabbing, keep panel at target distance in front of controller
+                endPoint = origin + direction * _grabDistance;
+                GrabbedPanel.MoveTo(endPoint);
 
                 if (_reticleVisual != null)
                 {
                     _reticleVisual.gameObject.SetActive(true);
-                    _reticleVisual.position = hit.point;
-                    _reticleVisual.rotation = Quaternion.LookRotation(hit.normal);
-                }
-            }
-            else
-            {
-                ClearHover();
-                if (_reticleVisual != null)
-                {
-                    _reticleVisual.gameObject.SetActive(false);
+                    _reticleVisual.position = endPoint;
                 }
             }
 
@@ -83,13 +118,6 @@ namespace RealityOS.XR
             {
                 _rayRenderer.SetPosition(0, origin);
                 _rayRenderer.SetPosition(1, endPoint);
-            }
-
-            // If currently grabbing a panel, keep it attached to controller transform
-            if (IsGrabbing && GrabbedPanel != null)
-            {
-                Vector3 targetWorldPos = transform.TransformPoint(_initialGrabLocalPos);
-                GrabbedPanel.MoveTo(targetWorldPos);
             }
         }
 
@@ -104,25 +132,19 @@ namespace RealityOS.XR
 
         private void HandleInputs()
         {
-            // Key triggers for simulation:
-            // Right Hand: Left Mouse Click (Trigger/Select), 'G' (Grip/Grab)
-            // Left Hand: 'T' (Teleport Ray / Grip)
             bool triggerDown = false;
-            bool triggerUp = false;
             bool gripDown = false;
             bool gripUp = false;
 
             if (_hand == HandType.Right)
             {
                 triggerDown = Input.GetMouseButtonDown(0);
-                triggerUp = Input.GetMouseButtonUp(0);
                 gripDown = Input.GetKeyDown(KeyCode.G);
                 gripUp = Input.GetKeyUp(KeyCode.G);
             }
             else
             {
                 triggerDown = Input.GetKeyDown(KeyCode.T);
-                triggerUp = Input.GetKeyUp(KeyCode.T);
                 gripDown = Input.GetKeyDown(KeyCode.H);
                 gripUp = Input.GetKeyUp(KeyCode.H);
             }
@@ -142,8 +164,8 @@ namespace RealityOS.XR
                 IsGrabbing = true;
                 GrabbedPanel = _hoveredPanel;
                 GrabbedPanel.BeginManipulation(ManipulationMode.Moving);
-                _initialGrabLocalPos = transform.InverseTransformPoint(GrabbedPanel.transform.position);
-                _initialGrabLocalRot = Quaternion.Inverse(transform.rotation) * GrabbedPanel.transform.rotation;
+                _grabDistance = Vector3.Distance(transform.position, GrabbedPanel.transform.position);
+                _grabDistance = Mathf.Clamp(_grabDistance, 0.8f, 6.0f);
             }
 
             // Release grab
@@ -170,8 +192,9 @@ namespace RealityOS.XR
                     _rayRenderer.endWidth = 0.002f;
                     _rayRenderer.positionCount = 2;
 
-                    Material rayMat = new Material(Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Unlit"));
-                    rayMat.color = new Color(0.0f, 0.82f, 0.77f, 0.7f);
+                    Shader s = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material rayMat = new Material(s);
+                    rayMat.color = new Color(0.0f, 0.95f, 0.9f, 0.8f);
                     _rayRenderer.material = rayMat;
                 }
             }
@@ -190,7 +213,8 @@ namespace RealityOS.XR
                 var r = ret.GetComponent<Renderer>();
                 if (r != null)
                 {
-                    Material m = new Material(Shader.Find("Standard") ?? Shader.Find("Universal Render Pipeline/Unlit"));
+                    Shader s = Shader.Find("Universal Render Pipeline/Unlit") ?? Shader.Find("Standard") ?? Shader.Find("Diffuse");
+                    Material m = new Material(s);
                     m.color = Color.cyan;
                     r.material = m;
                 }
@@ -200,4 +224,3 @@ namespace RealityOS.XR
         }
     }
 }
-

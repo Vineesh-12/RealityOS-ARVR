@@ -28,6 +28,12 @@ namespace RealityOS.Desktop
 
         private void Update()
         {
+            if (_camera == null)
+            {
+                _camera = GetComponent<Camera>() ?? Camera.main;
+                if (_camera == null) return;
+            }
+
             // Do not raycast if pointer is interacting with screen-space UI elements
             if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
             {

@@ -167,7 +167,8 @@ namespace RealityOS.Desktop
             if (WorkspaceManager.Instance != null && WorkspaceManager.Instance.SelectedPanel != null)
             {
                 Transform target = WorkspaceManager.Instance.SelectedPanel.TransformTarget;
-                _targetPosition = target.position - target.forward * 1.5f;
+                float dist = Mathf.Clamp(1.5f, _minDistance, _maxDistance);
+                _targetPosition = target.position - target.forward * dist;
                 transform.LookAt(target.position);
                 Vector3 euler = transform.rotation.eulerAngles;
                 _pitch = euler.x;

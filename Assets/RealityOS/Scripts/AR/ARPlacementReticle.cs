@@ -104,7 +104,7 @@ namespace RealityOS.AR
                 CurrentPose = new Pose(pt, Quaternion.identity);
                 IsValidPlacement = true;
                 transform.position = Vector3.Lerp(transform.position, pt, Time.deltaTime * _positionLerpSpeed);
-                transform.rotation = Quaternion.identity;
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.identity, Time.deltaTime * _rotationLerpSpeed);
                 SetVisualVisible(true);
                 SetColor(_validColor);
             }

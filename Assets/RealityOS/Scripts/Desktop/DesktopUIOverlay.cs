@@ -4,6 +4,7 @@ using TMPro;
 using RealityOS.Core;
 using RealityOS.Workspace;
 using RealityOS.Panels;
+using RealityOS.UI;
 
 namespace RealityOS.Desktop
 {

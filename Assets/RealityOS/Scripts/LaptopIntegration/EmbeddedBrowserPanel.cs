@@ -90,7 +90,10 @@ namespace RealityOS.LaptopIntegration
             var scaler = canvasObj.GetComponent<CanvasScaler>() ?? canvasObj.AddComponent<CanvasScaler>();
             scaler.dynamicPixelsPerUnit = 2;
 
-            canvasObj.GetComponent<GraphicRaycaster>() ?? canvasObj.AddComponent<GraphicRaycaster>();
+            if (canvasObj.GetComponent<GraphicRaycaster>() == null)
+            {
+                canvasObj.AddComponent<GraphicRaycaster>();
+            }
 
             // Viewport RawImage
             Transform vpTrans = canvasObj.transform.Find("ViewportImage");

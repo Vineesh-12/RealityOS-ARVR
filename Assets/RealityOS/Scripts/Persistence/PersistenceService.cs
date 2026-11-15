@@ -83,7 +83,8 @@ namespace RealityOS.Persistence
                 if (File.Exists(filePath))
                 {
                     File.Copy(filePath, backupPath, true);
-                    File.Move(tempPath, filePath, true);
+                    File.Delete(filePath);
+                    File.Move(tempPath, filePath);
                 }
                 else
                 {

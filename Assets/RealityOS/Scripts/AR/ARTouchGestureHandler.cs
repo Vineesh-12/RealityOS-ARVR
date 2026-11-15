@@ -104,7 +104,7 @@ namespace RealityOS.AR
                         if (_touchDragPlane.Raycast(dragRay, out float enter))
                         {
                             Vector3 hitPoint = dragRay.GetPoint(enter);
-                            _targetPanel.MoveTo(hitPoint + _dragOffset);
+                            _targetPanel.MoveTo(hitPoint + (_dragOffset * _dragSensitivity));
                         }
                     }
                     break;

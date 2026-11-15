@@ -311,12 +311,15 @@ SceneRoots:
   - {{fileID: 301}}
 """
 
-def generate_scenes():
+def generate_scenes(force=False):
     scene_dir = os.path.join("Assets", "RealityOS", "Scenes")
     os.makedirs(scene_dir, exist_ok=True)
 
     for s, guid in SCENE_MAPPINGS.items():
         sp = os.path.join(scene_dir, s)
+        if os.path.exists(sp) and not force:
+            print(f"Preserving existing configured scene: {sp}")
+            continue
         with open(sp, "w", encoding="utf-8") as f:
             f.write(generate_scene_yaml(guid))
         print(f"Generated scene with controller: {sp}")

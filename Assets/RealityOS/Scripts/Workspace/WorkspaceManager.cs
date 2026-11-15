@@ -65,6 +65,8 @@ namespace RealityOS.Workspace
         [SerializeField] private GameObject _informationPanelPrefab;
         [SerializeField] private GameObject _objectViewerPanelPrefab;
         [SerializeField] private GameObject _quickAccessPanelPrefab;
+        [SerializeField] private GameObject _laptopConnectPanelPrefab;
+        [SerializeField] private GameObject _browserPanelPrefab;
 
         [Header("Runtime Anchors")]
         [SerializeField] private Transform _panelsParent;
@@ -469,6 +471,8 @@ namespace RealityOS.Workspace
                 case PanelType.Information: return _informationPanelPrefab;
                 case PanelType.ObjectViewer: return _objectViewerPanelPrefab;
                 case PanelType.QuickAccess: return _quickAccessPanelPrefab;
+                case PanelType.LaptopConnect: return _laptopConnectPanelPrefab;
+                case PanelType.Browser: return _browserPanelPrefab;
                 default: return null;
             }
         }
@@ -517,6 +521,10 @@ namespace RealityOS.Workspace
                 case PanelType.LaptopConnect:
                     var laptop = go.AddComponent<RealityOS.LaptopIntegration.LaptopConnectPanel>();
                     laptop.Title = "Laptop Integration Hub";
+                    break;
+                case PanelType.Browser:
+                    var browser = go.AddComponent<RealityOS.LaptopIntegration.EmbeddedBrowserPanel>();
+                    browser.Title = "Spatial Web Browser";
                     break;
             }
 

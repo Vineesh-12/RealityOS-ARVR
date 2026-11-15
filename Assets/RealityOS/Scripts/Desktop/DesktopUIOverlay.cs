@@ -75,21 +75,21 @@ namespace RealityOS.Desktop
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleLeft
             };
-            _headerStyle.normal.textColor = new Color(0.0f, 0.9f, 0.85f); // Cyan
+            _headerStyle.normal.textColor = UITheme.PrimaryTeal;
 
             _buttonStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize = 12,
                 fontStyle = FontStyle.Bold
             };
-            _buttonStyle.normal.textColor = Color.white;
+            _buttonStyle.normal.textColor = UITheme.PrimaryText;
 
             _accentBtnStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize = 12,
                 fontStyle = FontStyle.Bold
             };
-            _accentBtnStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f);
+            _accentBtnStyle.normal.textColor = UITheme.HoverTeal;
 
             _boxStyle = new GUIStyle(GUI.skin.box);
 
@@ -160,11 +160,17 @@ namespace RealityOS.Desktop
             }
             btnX += 74 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 78, btnH), "+ Laptop", _accentBtnStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 74, btnH), "+ Laptop", _buttonStyle))
             {
                 SpawnPanel(PanelType.LaptopConnect);
             }
-            btnX += 78 + gap + 8;
+            btnX += 74 + gap;
+
+            if (GUI.Button(new Rect(btnX, btnY, 82, btnH), "+ Browser", _accentBtnStyle))
+            {
+                SpawnPanel(PanelType.Browser);
+            }
+            btnX += 82 + gap + 8;
 
             if (GUI.Button(new Rect(btnX, btnY, 72, btnH), "Curved Arc", _buttonStyle))
             {

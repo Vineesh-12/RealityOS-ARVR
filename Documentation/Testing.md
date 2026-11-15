@@ -23,8 +23,11 @@ The automated regression test suite (`Tests/test_runner.py`) was executed in the
 | **TEST-05** | `Test05_PanelClone_GeneratesUniqueIdAndOffset` | Panel Engine | **PASS** | Cloned panels receive distinct GUIDs, offset coordinates (+0.15m X), and deep copies of task lists. |
 | **TEST-06** | `Test06_CorruptJson_GracefulRecovery` | Error Handling / Recovery | **PASS** | Corrupted JSON files are quarantined to `.corrupt.bak` and fallback defaults are loaded without application crash. |
 | **TEST-07** | `Test07_MultiWorkspaceListing_AndShowcase` | Storage / Discovery | **PASS** | Scans multi-file persistence directory, indexes metadata, and auto-generates sample showcase when directory is empty. |
+| **TEST-08** | `Test08_LaptopAllowlist_ResolvesNativePaths` | Laptop Integration | **PASS** | Verifies allowlisted applications (Chrome, Notepad, Calc, VS Code, Explorer) without false positives. |
+| **TEST-09** | `Test09_BrowserUrlSanitizer_ValidatesAndPrependsScheme` | Embedded Browser | **PASS** | Validates URL normalization, prepends HTTPS, parses queries, and rejects illegal protocols. |
+| **TEST-10** | `Test10_NotesDocumentExport_AndSyncIntegrity` | Two-Way File Sync | **PASS** | Verifies physical `.txt` export, simulated external edit in Notepad, and data parity in RealityOS. |
 
-**Summary**: **7 Passed, 0 Failed, 0 Warnings**.
+**Summary**: **10 Passed, 0 Failed, 0 Warnings** across both Unity NUnit (`RealityOSTests.cs`) and Standalone Test Runner (`test_runner.py`).
 
 ---
 

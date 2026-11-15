@@ -1,17 +1,17 @@
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.IO;
 using UnityEngine;
 using RealityOS.Core;
 using RealityOS.Panels;
-using RealityOS.Workspace;
 using Debug = UnityEngine.Debug;
 
 namespace RealityOS.LaptopIntegration
 {
     /// <summary>
-    /// Manages real physical .txt document files on the user's laptop and synchronizes them
-    /// two-way between RealityOS 3D Notes panels and Windows Notepad using a FileSystemWatcher.
+    /// Manages real physical .txt documents on the user's laptop and provides two-way
+    /// synchronization between multiple RealityOS 3D Notes panels and Windows Notepad.
     /// </summary>
     public class NotesFileManager : MonoBehaviour
     {
@@ -39,11 +39,14 @@ namespace RealityOS.LaptopIntegration
         private string _documentsFolder;
         private FileSystemWatcher _watcher;
         private readonly ConcurrentQueue<string> _changedFilePaths = new ConcurrentQueue<string>();
-        private NotesPanel _monitoredNotesPanel;
-        private string _activeMonitoredFile;
+        
+        // Multi-note mapping: normalized file path -> NotesPanel
+        private readonly Dictionary<string, NotesPanel> _activeMonitoredNotes = new Dictionary<string, NotesPanel>(StringComparer.OrdinalIgnoreCase);
+        private readonly Dictionary<string, float> _lastEventTimes = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase);
+        private const float DEBOUNCE_INTERVAL = 0.35f;
 
         public string DocumentsFolder => _documentsFolder;
-        public string ActiveMonitoredFile => _activeMonitoredFile;
+        public IReadOnlyDictionary<string, NotesPanel> MonitoredNotes => _activeMonitoredNotes;
 
         private void Awake()
         {
@@ -83,8 +86,8 @@ namespace RealityOS.LaptopIntegration
                     EnableRaisingEvents = true
                 };
 
-                _watcher.Changed += OnFileChanged;
-                _watcher.Created += OnFileChanged;
+                _watcher.Changed += OnFileSystemEvent;
+                _watcher.Created += OnFileSystemEvent;
                 Debug.Log($"[RealityOS.NotesFileManager] FileSystemWatcher active on {_documentsFolder}");
             }
             catch (Exception ex)
@@ -93,17 +96,26 @@ namespace RealityOS.LaptopIntegration
             }
         }
 
-        private void OnFileChanged(object sender, FileSystemEventArgs e)
+        private void OnFileSystemEvent(object sender, FileSystemEventArgs e)
         {
-            // Background thread: enqueue for main thread consumption
+            // Debounce file events in background thread queue
             _changedFilePaths.Enqueue(e.FullPath);
         }
 
         private void Update()
         {
-            // Drain queue on Unity main thread
+            // Drain queue on Unity main thread without blocking
             while (_changedFilePaths.TryDequeue(out string filePath))
             {
+                float now = Time.realtimeSinceStartup;
+                if (_lastEventTimes.TryGetValue(filePath, out float lastTime))
+                {
+                    if (now - lastTime < DEBOUNCE_INTERVAL)
+                    {
+                        continue; // Skip duplicate rapid event
+                    }
+                }
+                _lastEventTimes[filePath] = now;
                 ProcessFileChange(filePath);
             }
         }
@@ -114,16 +126,17 @@ namespace RealityOS.LaptopIntegration
             {
                 if (!File.Exists(filePath)) return;
 
-                // Brief delay retry in case Notepad is holding write lock
-                string content = ReadTextWithRetry(filePath, 3);
+                // Non-blocking file read with shared read/write lock
+                string content = ReadTextNonBlocking(filePath);
                 if (content == null) return;
 
                 Debug.Log($"[RealityOS.NotesFileManager] Detected external edit in Notepad: {Path.GetFileName(filePath)} ({content.Length} chars)");
 
-                // If currently syncing with a specific NotesPanel, update it directly!
-                if (_monitoredNotesPanel != null && string.Equals(filePath, _activeMonitoredFile, StringComparison.OrdinalIgnoreCase))
+                // Multi-note update: route to the matching NotesPanel!
+                string norm = Path.GetFullPath(filePath);
+                if (_activeMonitoredNotes.TryGetValue(norm, out NotesPanel panel) && panel != null)
                 {
-                    _monitoredNotesPanel.SetContent(content);
+                    panel.SetContent(content);
                 }
 
                 OnFileContentUpdated?.Invoke(filePath, content);
@@ -134,29 +147,26 @@ namespace RealityOS.LaptopIntegration
             }
         }
 
-        private string ReadTextWithRetry(string path, int maxRetries)
+        private string ReadTextNonBlocking(string path)
         {
-            for (int i = 0; i < maxRetries; i++)
+            try
             {
-                try
+                using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
+                using (var reader = new StreamReader(stream))
                 {
-                    using (var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
-                    using (var reader = new StreamReader(stream))
-                    {
-                        return reader.ReadToEnd();
-                    }
-                }
-                catch (IOException)
-                {
-                    System.Threading.Thread.Sleep(50);
+                    return reader.ReadToEnd();
                 }
             }
-            return null;
+            catch
+            {
+                // File locked by external editor; will be read on next tick without hanging Unity thread
+                return null;
+            }
         }
 
         /// <summary>
         /// Exports text from a NotesPanel into a physical .txt file and launches Windows Notepad.
-        /// Changes saved in Notepad will auto-sync back to the panel in real time.
+        /// Changes saved in Notepad will auto-sync back to the specific panel in real time.
         /// </summary>
         public bool OpenNotesPanelInNotepad(NotesPanel panel, string optionalFileName = null)
         {
@@ -164,9 +174,13 @@ namespace RealityOS.LaptopIntegration
 
             InitializeFolder();
 
+            // Safe, unique filename incorporating clean title and panel GUID
+            string cleanTitle = CleanFileName(panel.Title);
+            string guidSnippet = panel.PanelId.Length >= 8 ? panel.PanelId.Substring(0, 8) : "doc";
+
             string fileName = string.IsNullOrWhiteSpace(optionalFileName)
-                ? $"Notes_{panel.Title.Replace(" ", "_")}.txt"
-                : optionalFileName;
+                ? $"Notes_{cleanTitle}_{guidSnippet}.txt"
+                : CleanFileName(optionalFileName);
 
             if (!fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase))
             {
@@ -174,18 +188,26 @@ namespace RealityOS.LaptopIntegration
             }
 
             string fullPath = Path.Combine(_documentsFolder, fileName);
+            string normPath = Path.GetFullPath(fullPath);
+
+            // Path Traversal Security check
+            if (!normPath.StartsWith(Path.GetFullPath(_documentsFolder), StringComparison.OrdinalIgnoreCase))
+            {
+                Debug.LogError($"[RealityOS.NotesFileManager] Rejected illegal path traversal attempt: {fullPath}");
+                return false;
+            }
 
             try
             {
                 // Export current content from 3D panel to text file
                 string currentContent = panel.ExportData().notesContent ?? "";
-                File.WriteAllText(fullPath, currentContent);
+                File.WriteAllText(normPath, currentContent);
 
-                _monitoredNotesPanel = panel;
-                _activeMonitoredFile = fullPath;
+                // Register panel in multi-note mapping
+                _activeMonitoredNotes[normPath] = panel;
 
                 // Launch Notepad with this file
-                var proc = WindowsApplicationLauncher.Launch(ExternalAppType.Notepad, $"\"{fullPath}\"");
+                var proc = WindowsApplicationLauncher.Launch(ExternalAppType.Notepad, $"\"{normPath}\"");
                 return proc != null;
             }
             catch (Exception ex)
@@ -195,9 +217,25 @@ namespace RealityOS.LaptopIntegration
             }
         }
 
-        /// <summary>
-        /// Reads all .txt files available in the NotesDocuments folder.
-        /// </summary>
+        private string CleanFileName(string raw)
+        {
+            if (string.IsNullOrWhiteSpace(raw)) return "Note";
+            char[] invalid = Path.GetInvalidFileNameChars();
+            System.Text.StringBuilder sb = new System.Text.StringBuilder();
+            foreach (char c in raw)
+            {
+                if (Array.IndexOf(invalid, c) < 0 && c != ' ')
+                {
+                    sb.Append(c);
+                }
+                else if (c == ' ')
+                {
+                    sb.Append('_');
+                }
+            }
+            return sb.Length > 0 ? sb.ToString() : "Note";
+        }
+
         public string[] GetAvailableTextFiles()
         {
             InitializeFolder();

@@ -16,7 +16,8 @@ namespace RealityOS.Core
         Information,
         ObjectViewer,
         QuickAccess,
-        LaptopConnect
+        LaptopConnect,
+        Browser
     }
 
     public enum ExternalAppType

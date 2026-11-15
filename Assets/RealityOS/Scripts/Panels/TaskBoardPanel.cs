@@ -8,6 +8,10 @@ using RealityOS.Persistence;
 
 namespace RealityOS.Panels
 {
+    /// <summary>
+    /// Interactive Task Board Panel. Allows users to add tasks, cycle status
+    /// (Pending -> In Progress -> Completed), delete tasks, and track sprint progress.
+    /// </summary>
     public class TaskBoardPanel : WorkspacePanelBase
     {
         [Header("Task Board UI")]
@@ -20,6 +24,16 @@ namespace RealityOS.Panels
         [Header("Runtime State")]
         [SerializeField] private List<TaskItemData> _tasks = new List<TaskItemData>();
 
+        private string _inProgressNewTaskName = "New Task Item";
+        private GUIStyle _cardBoxStyle;
+        private GUIStyle _taskTitleStyle;
+        private GUIStyle _btnStyle;
+        private GUIStyle _statusBtnStyle;
+        private GUIStyle _summaryStyle;
+        private bool _guiStylesInit = false;
+
+        public IReadOnlyList<TaskItemData> Tasks => _tasks;
+
         protected override void Awake()
         {
             _panelType = PanelType.TaskBoard;
@@ -27,16 +41,14 @@ namespace RealityOS.Panels
 
             if (_addTaskButton != null)
             {
-                _addTaskButton.onClick.AddListener(OnAddTaskClicked);
+                _addTaskButton.onClick.AddListener(OnAddTaskButtonClicked);
             }
         }
 
-        private void OnDestroy()
+        protected override void Start()
         {
-            if (_addTaskButton != null)
-            {
-                _addTaskButton.onClick.RemoveListener(OnAddTaskClicked);
-            }
+            base.Start();
+            RefreshTaskUI();
         }
 
         public void AddTask(string title)
@@ -88,7 +100,7 @@ namespace RealityOS.Panels
             }
         }
 
-        private void OnAddTaskClicked()
+        private void OnAddTaskButtonClicked()
         {
             if (_newTaskInputField != null && !string.IsNullOrWhiteSpace(_newTaskInputField.text))
             {
@@ -99,93 +111,122 @@ namespace RealityOS.Panels
 
         public void RefreshTaskUI()
         {
-            if (_taskListContainer == null) return;
-
-            // Clear old UI items
-            for (int i = _taskListContainer.childCount - 1; i >= 0; i--)
-            {
-                Destroy(_taskListContainer.GetChild(i).gameObject);
-            }
-
             int completedCount = 0;
-
-            foreach (var task in _tasks)
-            {
-                if (task.status == TaskStatus.Completed) completedCount++;
-
-                GameObject itemObj;
-                if (_taskItemPrefab != null)
-                {
-                    itemObj = Instantiate(_taskItemPrefab, _taskListContainer);
-                }
-                else
-                {
-                    itemObj = CreateProceduralTaskItem(task, _taskListContainer);
-                }
-
-                BindTaskItem(itemObj, task);
-            }
-
             System.Text.StringBuilder sb = new System.Text.StringBuilder();
+
             foreach (var t in _tasks)
             {
+                if (t.status == TaskStatus.Completed) completedCount++;
                 string mark = t.status == TaskStatus.Completed ? "[v]" : (t.status == TaskStatus.InProgress ? "[~]" : "[ ]");
                 sb.AppendLine($"{mark} {t.title}");
             }
+
             SetWorldBodyText(sb.ToString());
 
             if (_progressSummaryText != null)
             {
-                int total = _tasks.Count;
-                _progressSummaryText.text = $"{completedCount} / {total} Completed";
+                _progressSummaryText.text = $"{completedCount} / {_tasks.Count} Completed";
             }
         }
 
-        private void BindTaskItem(GameObject itemObj, TaskItemData task)
+        private void InitGuiStyles()
         {
-            var titleTxt = itemObj.GetComponentInChildren<TextMeshProUGUI>();
-            if (titleTxt != null)
-            {
-                string prefix = task.status == TaskStatus.Completed ? "[v] " : (task.status == TaskStatus.InProgress ? "[~] " : "[ ] ");
-                titleTxt.text = prefix + task.title;
-                titleTxt.color = task.status == TaskStatus.Completed ? new Color(0.6f, 0.6f, 0.6f) : Color.white;
-            }
+            if (_guiStylesInit) return;
 
-            var btn = itemObj.GetComponent<Button>();
-            if (btn != null)
+            _cardBoxStyle = new GUIStyle(GUI.skin.box);
+
+            _taskTitleStyle = new GUIStyle(GUI.skin.label)
             {
-                string idCopy = task.id;
-                btn.onClick.RemoveAllListeners();
-                btn.onClick.AddListener(() => ToggleTaskStatus(idCopy));
-            }
+                fontSize = 13,
+                fontStyle = FontStyle.Bold
+            };
+            _taskTitleStyle.normal.textColor = Color.white;
+
+            _btnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 11,
+                fontStyle = FontStyle.Bold
+            };
+            _btnStyle.normal.textColor = Color.white;
+
+            _statusBtnStyle = new GUIStyle(GUI.skin.button)
+            {
+                fontSize = 11,
+                fontStyle = FontStyle.Bold
+            };
+
+            _summaryStyle = new GUIStyle(GUI.skin.label)
+            {
+                fontSize = 11,
+                alignment = TextAnchor.MiddleLeft
+            };
+            _summaryStyle.normal.textColor = new Color(0.7f, 0.85f, 0.95f);
+
+            _guiStylesInit = true;
         }
 
-        private GameObject CreateProceduralTaskItem(TaskItemData task, Transform parent)
+        private void OnGUI()
         {
-            GameObject go = new GameObject($"TaskItem_{task.id}");
-            go.transform.SetParent(parent, false);
+            // Interactive task manager controls when selected
+            if (!IsSelected) return;
 
-            var rt = go.AddComponent<RectTransform>();
-            rt.sizeDelta = new Vector2(280f, 32f);
+            InitGuiStyles();
 
-            var img = go.AddComponent<Image>();
-            img.color = new Color(0.18f, 0.22f, 0.28f, 0.9f);
+            float w = 380;
+            float h = 340;
+            float x = Screen.width - w - 20;
+            float y = Screen.height - h - 45;
 
-            var btn = go.AddComponent<Button>();
+            GUI.Box(new Rect(x, y, w, h), GUIContent.none, _cardBoxStyle);
 
-            GameObject textObj = new GameObject("TitleText");
-            textObj.transform.SetParent(go.transform, false);
-            var textRt = textObj.AddComponent<RectTransform>();
-            textRt.anchorMin = Vector2.zero;
-            textRt.anchorMax = Vector2.one;
-            textRt.offsetMin = new Vector2(8f, 2f);
-            textRt.offsetMax = new Vector2(-8f, -2f);
+            int done = 0;
+            foreach (var t in _tasks) if (t.status == TaskStatus.Completed) done++;
+            GUI.Label(new Rect(x + 15, y + 10, w - 30, 22), $"📋 {_title} ({done}/{_tasks.Count} Done)", _taskTitleStyle);
 
-            var tmp = textObj.AddComponent<TextMeshProUGUI>();
-            tmp.fontSize = 14;
-            tmp.alignment = TextAlignmentOptions.MidlineLeft;
+            // Add new task row
+            _inProgressNewTaskName = GUI.TextField(new Rect(x + 15, y + 36, w - 120, 26), _inProgressNewTaskName);
+            if (GUI.Button(new Rect(x + w - 95, y + 36, 80, 26), "+ Add", _btnStyle))
+            {
+                AddTask(_inProgressNewTaskName);
+                _inProgressNewTaskName = "New Task";
+            }
 
-            return go;
+            // Task Rows List
+            float curY = y + 70;
+            for (int i = 0; i < Mathf.Min(_tasks.Count, 6); i++)
+            {
+                var task = _tasks[i];
+                string statusLabel = task.status == TaskStatus.Completed ? "✓ Done" : (task.status == TaskStatus.InProgress ? "~ WIP" : "○ Todo");
+                
+                // Status Toggle Button
+                if (GUI.Button(new Rect(x + 15, curY, 70, 24), statusLabel, _statusBtnStyle))
+                {
+                    ToggleTaskStatus(task.id);
+                }
+
+                // Task Title
+                GUI.Label(new Rect(x + 92, curY + 2, w - 150, 20), task.title, _summaryStyle);
+
+                // Delete Button
+                if (GUI.Button(new Rect(x + w - 45, curY, 30, 24), "×", _btnStyle))
+                {
+                    RemoveTask(task.id);
+                    break;
+                }
+
+                curY += 28;
+            }
+
+            // Bottom Clear / Status
+            if (GUI.Button(new Rect(x + 15, y + h - 34, 110, 26), "Clear Done", _btnStyle))
+            {
+                _tasks.RemoveAll(t => t.status == TaskStatus.Completed);
+                RefreshTaskUI();
+                if (RealityOS.Workspace.WorkspaceManager.Instance != null)
+                {
+                    RealityOS.Workspace.WorkspaceManager.Instance.MarkDirty();
+                }
+            }
         }
 
         public override PanelData ExportData()
@@ -206,4 +247,3 @@ namespace RealityOS.Panels
         }
     }
 }
-

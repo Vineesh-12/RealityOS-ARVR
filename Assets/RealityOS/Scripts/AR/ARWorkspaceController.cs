@@ -148,23 +148,19 @@ namespace RealityOS.AR
 
         public void PlaceSelectedPanelAtReticle()
         {
-            Vector3 spawnPos;
-            Quaternion rot;
-            Camera cam = Camera.main;
+            if (_placementReticle == null || !_placementReticle.IsValidPlacement)
+            {
+                UpdateGuidanceMessage("Cannot place panel: No surface detected. Point camera at a detected plane first.");
+                Debug.LogWarning("[RealityOS.AR] Placement rejected: Reticle has no valid surface detection.");
+                return;
+            }
 
-            if (_placementReticle != null && _placementReticle.IsValidPlacement)
-            {
-                Pose pose = _placementReticle.CurrentPose;
-                spawnPos = pose.position + Vector3.up * 0.15f;
-                rot = cam != null
-                    ? Quaternion.LookRotation(cam.transform.forward, Vector3.up)
-                    : pose.rotation;
-            }
-            else
-            {
-                spawnPos = cam != null ? cam.transform.position + cam.transform.forward * 1.5f : new Vector3(0f, 1.2f, 1.5f);
-                rot = cam != null ? cam.transform.rotation : Quaternion.identity;
-            }
+            Pose pose = _placementReticle.CurrentPose;
+            Vector3 spawnPos = pose.position + Vector3.up * 0.15f;
+            Camera cam = Camera.main;
+            Quaternion rot = cam != null
+                ? Quaternion.LookRotation(cam.transform.forward, Vector3.up)
+                : pose.rotation;
 
             if (WorkspaceManager.Instance != null)
             {
@@ -182,7 +178,14 @@ namespace RealityOS.AR
 #endif
                 }
             }
-            UpdateGuidanceMessage($"Placed {_selectedPanelTypeToPlace} panel.");
+            UpdateGuidanceMessage($"Placed {_selectedPanelTypeToPlace} panel on detected surface.");
+        }
+
+        private void OnGUI()
+        {
+#if !UNITY_XR_ARFOUNDATION
+            GUI.Box(new Rect((Screen.width - 340) * 0.5f, Screen.height - 40, 340, 26), "[SIMULATION MODE - DESKTOP AR FALLBACK]");
+#endif
         }
 
         public void TogglePlaneVisualization(bool show)

@@ -35,13 +35,13 @@ namespace RealityOS.Panels
         [Header("Manipulation & Visuals")]
         [SerializeField] protected float _minScale = 0.4f;
         [SerializeField] protected float _maxScale = 3.0f;
-        [SerializeField] protected Color _defaultBgColor = new Color(0.11f, 0.13f, 0.17f, 0.95f); // #1C212B
-        [SerializeField] protected Color _selectedBgColor = new Color(0.08f, 0.22f, 0.26f, 0.98f);
-        [SerializeField] protected Color _hoveredBgColor = new Color(0.15f, 0.20f, 0.28f, 0.95f);
+        [SerializeField] protected Color _defaultBgColor = new Color(0.125f, 0.169f, 0.212f, 0.98f); // #202B36 Panel Base
+        [SerializeField] protected Color _selectedBgColor = new Color(0.161f, 0.220f, 0.267f, 1.0f); // #293844 Raised Panel
+        [SerializeField] protected Color _hoveredBgColor = new Color(0.145f, 0.195f, 0.245f, 0.98f);
 
-        [SerializeField] protected Color _defaultOutlineColor = new Color(0.2f, 0.25f, 0.32f, 1f);
-        [SerializeField] protected Color _selectedOutlineColor = new Color(0.0f, 0.82f, 0.77f, 1f); // Cyan Accent
-        [SerializeField] protected Color _hoveredOutlineColor = new Color(0.4f, 0.6f, 0.9f, 1f);
+        [SerializeField] protected Color _defaultOutlineColor = new Color(0.227f, 0.290f, 0.341f, 1f); // #3A4A57 Panel Border
+        [SerializeField] protected Color _selectedOutlineColor = new Color(0.239f, 0.580f, 0.545f, 1f); // #3D948B Muted Teal Accent
+        [SerializeField] protected Color _hoveredOutlineColor = new Color(0.345f, 0.686f, 0.639f, 1f); // #58AFA3 Hover Teal
 
         public bool IsSelected { get; protected set; }
         public bool IsHovered { get; protected set; }

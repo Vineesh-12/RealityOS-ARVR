@@ -8,8 +8,8 @@ namespace RealityOS.Workspace
         [Header("Grid Dimensions")]
         [SerializeField] private int _gridSize = 24;
         [SerializeField] private float _spacing = 1.0f;
-        [SerializeField] private Color _floorColor = new Color(0.07f, 0.09f, 0.12f, 1.0f); // #12171F
-        [SerializeField] private Color _gridLineColor = new Color(0.18f, 0.28f, 0.38f, 0.6f);
+        [SerializeField] private Color _floorColor = new Color(0.125f, 0.173f, 0.212f, 1.0f); // #202C36 Floor Layer
+        [SerializeField] private Color _gridLineColor = new Color(0.251f, 0.318f, 0.365f, 0.30f); // #40515D low opacity
 
         private GameObject _floorPlane;
 

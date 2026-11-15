@@ -87,12 +87,22 @@ namespace RealityOS.XR
         {
             if (_xrCamera == null) _xrCamera = Camera.main;
 
+            if (_leftHand == null)
+            {
+                Transform lh = transform.Find("LeftHand_Simulator");
+                GameObject lhObj = lh != null ? lh.gameObject : new GameObject("LeftHand_Simulator");
+                lhObj.transform.SetParent(transform, false);
+                _leftHand = lhObj.GetComponent<XRSimulatedController>() ?? lhObj.AddComponent<XRSimulatedController>();
+                _leftHand.SetHandType(XRSimulatedController.HandType.Left);
+            }
+
             if (_rightHand == null)
             {
                 Transform rh = transform.Find("RightHand_Simulator");
                 GameObject rhObj = rh != null ? rh.gameObject : new GameObject("RightHand_Simulator");
                 rhObj.transform.SetParent(transform, false);
                 _rightHand = rhObj.GetComponent<XRSimulatedController>() ?? rhObj.AddComponent<XRSimulatedController>();
+                _rightHand.SetHandType(XRSimulatedController.HandType.Right);
             }
 
             if (_locomotion == null)

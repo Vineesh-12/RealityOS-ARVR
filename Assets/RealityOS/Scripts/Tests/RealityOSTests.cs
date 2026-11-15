@@ -151,6 +151,73 @@ namespace RealityOS.Tests
             Assert.IsNull(result, "Loading corrupted file should return null.");
             Assert.IsFalse(File.Exists(path), "Corrupt file should be backed up and removed from primary path.");
         }
+
+        [Test]
+        public void Test07_EmbeddedBrowser_SessionHistoryAndNormalization()
+        {
+            var session = new RealityOS.LaptopIntegration.BrowserSessionManager("https://www.google.com");
+            Assert.AreEqual("https://www.google.com", session.CurrentUrl);
+            Assert.IsFalse(session.CanGoBack);
+
+            // Test query normalization
+            string searchUrl = RealityOS.LaptopIntegration.BrowserSessionManager.NormalizeUrlOrSearch("spatial computing");
+            Assert.IsTrue(searchUrl.Contains("google.com/search?q=spatial%20computing") || searchUrl.Contains("google.com/search?q=spatial+computing"));
+
+            // Navigate
+            session.NavigateTo("https://github.com");
+            Assert.IsTrue(session.CanGoBack);
+            Assert.AreEqual("https://github.com/", session.CurrentUrl);
+
+            // Go back
+            session.GoBack();
+            Assert.AreEqual("https://www.google.com", session.CurrentUrl);
+            Assert.IsTrue(session.CanGoForward);
+        }
+
+        [Test]
+        public void Test08_LaptopIntegration_StrictAllowlistVerification()
+        {
+            // Verify allowlisted paths resolve or reject properly without false positives
+            bool notepadFound = RealityOS.LaptopIntegration.WindowsApplicationLauncher.IsAppAvailable(ExternalAppType.Notepad);
+            Assert.IsTrue(notepadFound, "Notepad should be confirmed available on Windows system.");
+
+            bool calcFound = RealityOS.LaptopIntegration.WindowsApplicationLauncher.IsAppAvailable(ExternalAppType.Calculator);
+            Assert.IsTrue(calcFound, "Calculator should be confirmed available on Windows system.");
+
+            string fakeExe = RealityOS.LaptopIntegration.WindowsApplicationLauncher.ResolveExecutablePath((ExternalAppType)999);
+            Assert.IsNull(fakeExe, "Non-allowlisted app types must return null.");
+        }
+
+        [Test]
+        public void Test09_NotesFileManager_SafePathValidation()
+        {
+            string safeName = RealityOS.Persistence.PersistenceService.SanitizeFileName("Project Note/Sprint:1?*");
+            Assert.IsFalse(safeName.Contains("/"));
+            Assert.IsFalse(safeName.Contains(":"));
+            Assert.IsFalse(safeName.Contains("?"));
+            Assert.IsFalse(safeName.Contains("*"));
+        }
+
+        [Test]
+        public void Test10_AtomicPersistence_BackupAndRecoveryCopyIntegrity()
+        {
+            string testId = "atomic-recovery-test";
+            WorkspaceData ws = new WorkspaceData("Atomic Recovery Workspace");
+            ws.workspaceId = testId;
+
+            bool saved = _persistence.SaveWorkspace(ws);
+            Assert.IsTrue(saved);
+
+            string filePath = _persistence.GetWorkspaceFilePath(testId);
+            string backupPath = filePath + ".bak";
+
+            // Save again to trigger backup creation
+            ws.description = "Updated description";
+            _persistence.SaveWorkspace(ws);
+
+            Assert.IsTrue(File.Exists(filePath));
+            Assert.IsTrue(File.Exists(backupPath), "A .bak recovery copy should be created on subsequent saves.");
+        }
     }
 }
 

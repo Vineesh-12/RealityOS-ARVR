@@ -16,6 +16,9 @@ namespace RealityOS.XR
         [SerializeField] private float _maxRayDistance = 12f;
         [SerializeField] private LayerMask _raycastLayers = ~0;
 
+        public HandType Hand => _hand;
+        public void SetHandType(HandType hand) => _hand = hand;
+
         public bool IsGrabbing { get; private set; }
         public WorkspacePanelBase GrabbedPanel { get; private set; }
 

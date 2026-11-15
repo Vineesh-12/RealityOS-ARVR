@@ -78,12 +78,31 @@ namespace RealityOS.XR
                 if (cam != null)
                 {
                     Ray ray = new Ray(cam.transform.position, cam.transform.forward);
-                    Plane floorPlane = new Plane(Vector3.up, Vector3.zero);
+                    bool hitValid = false;
 
-                    if (floorPlane.Raycast(ray, out float enter) && enter <= _maxTeleportDistance)
+                    // 1. Raycast against physical colliders and floor meshes
+                    if (Physics.Raycast(ray, out RaycastHit hit, _maxTeleportDistance, _teleportLayer))
                     {
-                        _teleportTargetPosition = ray.GetPoint(enter);
+                        if (Vector3.Dot(hit.normal, Vector3.up) > 0.6f) // Horizontal floor surface
+                        {
+                            _teleportTargetPosition = hit.point;
+                            hitValid = true;
+                        }
+                    }
 
+                    // 2. Fallback to reference floor plane at y=0
+                    if (!hitValid)
+                    {
+                        Plane floorPlane = new Plane(Vector3.up, Vector3.zero);
+                        if (floorPlane.Raycast(ray, out float enter) && enter <= _maxTeleportDistance)
+                        {
+                            _teleportTargetPosition = ray.GetPoint(enter);
+                            hitValid = true;
+                        }
+                    }
+
+                    if (hitValid)
+                    {
                         if (_teleportMarker != null)
                         {
                             _teleportMarker.SetActive(true);

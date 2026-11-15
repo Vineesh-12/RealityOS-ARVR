@@ -37,7 +37,7 @@ namespace RealityOS.UI
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _titleStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f); // Cyan
+            _titleStyle.normal.textColor = UITheme.PrimaryTeal;
 
             _subtitleStyle = new GUIStyle(GUI.skin.label)
             {
@@ -45,7 +45,7 @@ namespace RealityOS.UI
                 fontStyle = FontStyle.Normal,
                 alignment = TextAnchor.MiddleCenter
             };
-            _subtitleStyle.normal.textColor = new Color(0.75f, 0.8f, 0.88f);
+            _subtitleStyle.normal.textColor = UITheme.SecondaryText;
 
             _cardTitleStyle = new GUIStyle(GUI.skin.label)
             {
@@ -53,7 +53,7 @@ namespace RealityOS.UI
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _cardTitleStyle.normal.textColor = Color.white;
+            _cardTitleStyle.normal.textColor = UITheme.PrimaryText;
 
             _descStyle = new GUIStyle(GUI.skin.label)
             {
@@ -62,14 +62,14 @@ namespace RealityOS.UI
                 alignment = TextAnchor.UpperLeft,
                 wordWrap = true
             };
-            _descStyle.normal.textColor = new Color(0.8f, 0.85f, 0.9f);
+            _descStyle.normal.textColor = UITheme.SecondaryText;
 
             _cardBtnStyle = new GUIStyle(GUI.skin.button)
             {
                 fontSize = 13,
                 fontStyle = FontStyle.Bold
             };
-            _cardBtnStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f);
+            _cardBtnStyle.normal.textColor = UITheme.HoverTeal;
 
             _boxStyle = new GUIStyle(GUI.skin.box);
 

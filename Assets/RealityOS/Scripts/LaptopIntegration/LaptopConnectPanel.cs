@@ -137,25 +137,25 @@ namespace RealityOS.LaptopIntegration
             float btnHalfW = (w - 30) / 2.0f;
             if (GUI.Button(new Rect(x + 12, curY, btnHalfW, 28), "Launch Chrome", _btnStyle))
             {
-                WindowsApplicationLauncher.Launch(ExternalAppType.Chrome);
-                SetFeedback("Launched Google Chrome.");
+                var p = WindowsApplicationLauncher.Launch(ExternalAppType.Chrome);
+                SetFeedback(p != null ? $"Launched Chrome (PID: {p.Id})" : "Failed: Chrome executable not found.");
             }
             if (GUI.Button(new Rect(x + 18 + btnHalfW, curY, btnHalfW, 28), "Launch Notepad", _btnStyle))
             {
-                WindowsApplicationLauncher.Launch(ExternalAppType.Notepad);
-                SetFeedback("Launched Windows Notepad.");
+                var p = WindowsApplicationLauncher.Launch(ExternalAppType.Notepad);
+                SetFeedback(p != null ? $"Launched Notepad (PID: {p.Id})" : "Failed: Notepad not found.");
             }
             curY += 32;
 
             if (GUI.Button(new Rect(x + 12, curY, btnHalfW, 28), "Launch VS Code", _btnStyle))
             {
-                WindowsApplicationLauncher.Launch(ExternalAppType.VSCode);
-                SetFeedback("Launched VS Code.");
+                var p = WindowsApplicationLauncher.Launch(ExternalAppType.VSCode);
+                SetFeedback(p != null ? "Launched VS Code successfully." : "Failed: VS Code not found in standard paths.");
             }
             if (GUI.Button(new Rect(x + 18 + btnHalfW, curY, btnHalfW, 28), "Calculator", _btnStyle))
             {
-                WindowsApplicationLauncher.Launch(ExternalAppType.Calculator);
-                SetFeedback("Launched Windows Calculator.");
+                var p = WindowsApplicationLauncher.Launch(ExternalAppType.Calculator);
+                SetFeedback(p != null ? "Launched Windows Calculator." : "Failed: Calculator not found.");
             }
             curY += 34;
 

@@ -73,8 +73,27 @@ namespace RealityOS.LaptopIntegration
             string path = ResolveExecutablePath(app);
             if (string.IsNullOrEmpty(path)) return false;
             if (File.Exists(path)) return true;
-            // Built-in commands on system PATH
-            return path.EndsWith(".exe", StringComparison.OrdinalIgnoreCase);
+
+            // Verify if command is directly resolvable on system PATH
+            if (!path.Contains("\\") && !path.Contains("/"))
+            {
+                string pathEnv = Environment.GetEnvironmentVariable("PATH");
+                if (!string.IsNullOrEmpty(pathEnv))
+                {
+                    foreach (string dir in pathEnv.Split(';'))
+                    {
+                        try
+                        {
+                            if (!string.IsNullOrWhiteSpace(dir) && File.Exists(Path.Combine(dir.Trim(), path)))
+                            {
+                                return true;
+                            }
+                        }
+                        catch { }
+                    }
+                }
+            }
+            return false;
         }
 
         /// <summary>

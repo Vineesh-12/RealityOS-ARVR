@@ -43,6 +43,20 @@ namespace RealityOS.Desktop
 
             HandleHover();
             HandleSelectionAndDrag();
+
+            // Forward mouse wheel scrolling to hovered 3D browser viewport
+            if (_hoveredPanel != null)
+            {
+                float scroll = Input.mouseScrollDelta.y;
+                if (Mathf.Abs(scroll) > 0.01f)
+                {
+                    var bridge = _hoveredPanel.GetComponentInChildren<RealityOS.LaptopIntegration.BrowserInputBridge>();
+                    if (bridge != null)
+                    {
+                        bridge.RaycastScroll(scroll);
+                    }
+                }
+            }
         }
 
         private void HandleHover()
@@ -100,6 +114,12 @@ namespace RealityOS.Desktop
                             if (WorkspaceManager.Instance != null)
                             {
                                 WorkspaceManager.Instance.SelectPanel(panel);
+                            }
+
+                            var bridge = hit.collider.GetComponentInParent<RealityOS.LaptopIntegration.BrowserInputBridge>();
+                            if (bridge != null)
+                            {
+                                bridge.RaycastClick(hit.point);
                             }
                         }
 

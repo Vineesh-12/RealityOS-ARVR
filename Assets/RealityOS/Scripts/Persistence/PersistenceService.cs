@@ -44,7 +44,18 @@ namespace RealityOS.Persistence
 
         public string GetWorkspaceFilePath(string workspaceId)
         {
-            return Path.Combine(_workspacesDirectory, $"{workspaceId}.json");
+            string cleanId = SanitizeFileName(workspaceId);
+            return Path.Combine(_workspacesDirectory, $"{cleanId}.json");
+        }
+
+        public static string SanitizeFileName(string name)
+        {
+            if (string.IsNullOrWhiteSpace(name)) return "workspace_default";
+            foreach (char c in Path.GetInvalidFileNameChars())
+            {
+                name = name.Replace(c, '_');
+            }
+            return name.Trim();
         }
 
         public bool SaveWorkspace(WorkspaceData workspace)
@@ -63,14 +74,21 @@ namespace RealityOS.Persistence
                 string filePath = GetWorkspaceFilePath(workspace.workspaceId);
                 string json = JsonUtility.ToJson(workspace, true);
 
-                // Write atomically via temporary file
+                // Write atomically via temporary file with backup copy
                 string tempPath = filePath + ".tmp";
+                string backupPath = filePath + ".bak";
+
                 File.WriteAllText(tempPath, json);
+
                 if (File.Exists(filePath))
                 {
-                    File.Delete(filePath);
+                    File.Copy(filePath, backupPath, true);
+                    File.Move(tempPath, filePath, true);
                 }
-                File.Move(tempPath, filePath);
+                else
+                {
+                    File.Move(tempPath, filePath);
+                }
 
                 Debug.Log($"[RealityOS.Persistence] Successfully saved workspace '{workspace.workspaceName}' ({workspace.workspaceId}) to {filePath}");
                 return true;
@@ -118,6 +136,24 @@ namespace RealityOS.Persistence
             {
                 Debug.LogError($"[RealityOS.Persistence] Corrupted workspace detected '{workspaceId}': {ex.Message}");
                 BackupCorruptFile(filePath);
+
+                // Attempt automatic recovery from .bak backup file
+                string backupPath = filePath + ".bak";
+                if (File.Exists(backupPath))
+                {
+                    try
+                    {
+                        string bakJson = File.ReadAllText(backupPath);
+                        WorkspaceData recovered = JsonUtility.FromJson<WorkspaceData>(bakJson);
+                        if (recovered != null)
+                        {
+                            ValidateWorkspaceData(recovered);
+                            Debug.Log($"[RealityOS.Persistence] Successfully recovered workspace '{workspaceId}' from backup copy!");
+                            return recovered;
+                        }
+                    }
+                    catch { }
+                }
                 return null;
             }
         }
@@ -315,6 +351,12 @@ namespace RealityOS.Persistence
             laptop.rotation = new SerializableQuaternion(Quaternion.Euler(-10f, -25f, 0f));
             laptop.notesContent = "https://www.google.com";
             ws.panels.Add(laptop);
+
+            // 7. Spatial Embedded Browser Panel - Upper Center
+            PanelData browser = new PanelData(PanelType.Browser, "Google Search", new Vector3(0.0f, 1.95f, 2.3f));
+            browser.rotation = new SerializableQuaternion(Quaternion.Euler(8f, 0f, 0f));
+            browser.notesContent = "https://www.google.com";
+            ws.panels.Add(browser);
 
             return ws;
         }

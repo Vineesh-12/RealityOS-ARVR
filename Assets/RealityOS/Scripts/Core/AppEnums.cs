@@ -15,7 +15,25 @@ namespace RealityOS.Core
         TaskBoard,
         Information,
         ObjectViewer,
-        QuickAccess
+        QuickAccess,
+        LaptopConnect
+    }
+
+    public enum ExternalAppType
+    {
+        Chrome,
+        Notepad,
+        Calculator,
+        VSCode,
+        FileExplorer
+    }
+
+    public enum WindowLayoutPreset
+    {
+        SideBySide,
+        DockRight,
+        MaximizeExternal,
+        Restore
     }
 
     public enum TaskStatus

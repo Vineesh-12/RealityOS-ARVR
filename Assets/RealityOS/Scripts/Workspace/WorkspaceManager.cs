@@ -514,6 +514,10 @@ namespace RealityOS.Workspace
                     var quick = go.AddComponent<RealityOS.Panels.QuickAccessPanel>();
                     quick.Title = "Quick Access";
                     break;
+                case PanelType.LaptopConnect:
+                    var laptop = go.AddComponent<RealityOS.LaptopIntegration.LaptopConnectPanel>();
+                    laptop.Title = "Laptop Integration Hub";
+                    break;
             }
 
             return go;

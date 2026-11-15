@@ -310,6 +310,12 @@ namespace RealityOS.Persistence
             quick.quickLinks.Add("Syllabus Mapping (21CSE353T)");
             ws.panels.Add(quick);
 
+            // 6. Laptop Integration Hub - Far Right Lower
+            PanelData laptop = new PanelData(PanelType.LaptopConnect, "Laptop Integration Hub", new Vector3(1.0f, 0.75f, 1.7f));
+            laptop.rotation = new SerializableQuaternion(Quaternion.Euler(-10f, -25f, 0f));
+            laptop.notesContent = "https://www.google.com";
+            ws.panels.Add(laptop);
+
             return ws;
         }
     }

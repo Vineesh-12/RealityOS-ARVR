@@ -100,3 +100,36 @@ Simulated XR Mode allows testing of XR Interaction Toolkit mechanics without req
 - User-configurable shortcuts to other workspaces or interaction modes.
 - One-click navigation trigger.
 
+### F. Laptop Integration Hub Panel
+- **Launch Real Windows Applications**: Click buttons to launch Google Chrome, Windows Notepad, Calculator, VS Code, and File Explorer.
+- **Live Notepad Synchronization**: Click **Sync Active Note to Notepad** to export the note to a physical `.txt` file and open it in Notepad. When you edit and save in Notepad (`Ctrl+S`), the 3D panel inside RealityOS updates instantly in real time via `FileSystemWatcher`!
+- **Spatial Web Browsing**: Enter any web address (e.g. `github.com`) or click quick bookmark pills (Google, GitHub, Wikipedia, Unity Docs) to open verified web resources.
+- **Side-by-Side Window Layouts**: Tile RealityOS on the left half of your laptop screen and Chrome or Notepad on the right half with one click using native Win32 window positioning (`SetWindowPos`).
+
+---
+
+## 6. Faculty Demonstration Walkthrough
+
+When presenting RealityOS to faculty or evaluators, follow this recommended sequence:
+
+1. **Launch from Bootstrap Scene**:
+   - Open `Bootstrap.unity` and click Play.
+   - Point out the unified Main Menu with the **Windows Integration** status strip showing native application readiness.
+2. **Explore Desktop Spatial Mode**:
+   - Click **Launch Desktop Mode**.
+   - Use `W/A/S/D` to fly through 3D space, showing the floating panels with cyan selection borders.
+   - Click the top toolbar button **Curved Arc** to demonstrate automated 3D spatial window arrangement.
+3. **Showcase Windows Laptop Integration**:
+   - Click `+ Laptop` to spawn the **Laptop Integration Hub**.
+   - Click **Sync Active Note to Notepad**: show Windows Notepad popping up with the note text.
+   - In Windows Notepad, type: `Demonstrated live to faculty at [Time]!`, press `Ctrl+S`, and switch back to Unity. Show that the floating 3D panel updated immediately without restarting!
+   - Click **Tile Side-by-Side** to demonstrate Win32 window docking (Unity on left 50%, Chrome/Notepad on right 50%).
+   - Click **Google** or **GitHub** to launch the browser from 3D space.
+4. **Demonstrate Persistence**:
+   - Press `Ctrl+S` to save.
+   - Click **Menu** to return to the Main Menu and reload the workspace; show all panels restored with exact positions, rotations, and notes content.
+5. **Demonstrate Simulated XR**:
+   - Click **Launch Simulated XR**.
+   - Show mouse-directed 6-DoF controllers, laser pointer targeting, grab panel with `G`, and comfort snap turns with `Q`/`E`.
+
+

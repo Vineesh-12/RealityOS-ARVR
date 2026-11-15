@@ -116,19 +116,19 @@ namespace RealityOS.Desktop
             InitStyles();
 
             // 1. Top HUD Bar
-            float barWidth = Mathf.Min(Screen.width - 20, 1100);
+            float barWidth = Mathf.Min(Screen.width - 20, 1180);
             float startX = (Screen.width - barWidth) * 0.5f;
 
             GUI.Box(new Rect(startX, 10, barWidth, 48), GUIContent.none, _boxStyle);
 
             string wsName = WorkspaceManager.Instance?.ActiveWorkspace?.workspaceName ?? "Default Workspace";
-            GUI.Label(new Rect(startX + 12, 16, 260, 32), $"RealityOS | {wsName}", _headerStyle);
+            GUI.Label(new Rect(startX + 10, 16, 210, 32), $"RealityOS | {wsName}", _headerStyle);
 
-            float btnX = startX + 270;
-            float btnW = 75;
+            float btnX = startX + 225;
+            float btnW = 68;
             float btnH = 30;
             float btnY = 19;
-            float gap = 6;
+            float gap = 5;
 
             if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), "+ Notes", _buttonStyle))
             {
@@ -142,52 +142,58 @@ namespace RealityOS.Desktop
             }
             btnX += btnW + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, btnW, btnH), "+ Info", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 62, btnH), "+ Info", _buttonStyle))
             {
                 SpawnPanel(PanelType.Information);
             }
-            btnX += btnW + gap;
+            btnX += 62 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 82, btnH), "+ 3D Model", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 74, btnH), "+ 3D Model", _buttonStyle))
             {
                 SpawnPanel(PanelType.ObjectViewer);
             }
-            btnX += 82 + gap;
+            btnX += 74 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 80, btnH), "+ Shortcut", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 74, btnH), "+ Shortcut", _buttonStyle))
             {
                 SpawnPanel(PanelType.QuickAccess);
             }
-            btnX += 80 + gap + 10;
+            btnX += 74 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 80, btnH), "Curved Arc", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 78, btnH), "+ Laptop", _accentBtnStyle))
+            {
+                SpawnPanel(PanelType.LaptopConnect);
+            }
+            btnX += 78 + gap + 8;
+
+            if (GUI.Button(new Rect(btnX, btnY, 72, btnH), "Curved Arc", _buttonStyle))
             {
                 WorkspaceManager.Instance?.ArrangeInCurvedArc();
                 ShowStatus("Arranged panels into 3D Curved Arc!");
             }
-            btnX += 80 + gap;
+            btnX += 72 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 70, btnH), "Grid Row", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 64, btnH), "Grid Row", _buttonStyle))
             {
                 WorkspaceManager.Instance?.ArrangeInHorizontalGrid();
                 ShowStatus("Arranged panels into Horizontal Grid!");
             }
-            btnX += 70 + gap;
+            btnX += 64 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 85, btnH), "Save (Ctrl+S)", _accentBtnStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 82, btnH), "Save (Ctrl+S)", _accentBtnStyle))
             {
                 WorkspaceManager.Instance?.SaveActiveWorkspace();
                 ShowStatus("Workspace Saved to Disk Successfully!");
             }
-            btnX += 85 + gap;
+            btnX += 82 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 55, btnH), "Help", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 50, btnH), "Help", _buttonStyle))
             {
                 _showHelp = !_showHelp;
             }
-            btnX += 55 + gap;
+            btnX += 50 + gap;
 
-            if (GUI.Button(new Rect(btnX, btnY, 65, btnH), "Menu", _buttonStyle))
+            if (GUI.Button(new Rect(btnX, btnY, 56, btnH), "Menu", _buttonStyle))
             {
                 SceneNavigationManager.Instance?.ReturnToMainMenu();
             }

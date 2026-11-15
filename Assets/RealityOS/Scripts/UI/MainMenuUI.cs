@@ -139,8 +139,16 @@ namespace RealityOS.UI
                 LaunchMode(InteractionMode.MobileAR);
             }
 
+            // Laptop Integration Status Strip
+            float laptopStripY = cardY + cardH + 12;
+            GUI.Box(new Rect(startX, laptopStripY, panelW, 30), GUIContent.none, _boxStyle);
+            bool chromeReady = RealityOS.LaptopIntegration.WindowsApplicationLauncher.IsAppAvailable(ExternalAppType.Chrome);
+            bool vsCodeReady = RealityOS.LaptopIntegration.WindowsApplicationLauncher.IsAppAvailable(ExternalAppType.VSCode);
+            string laptopStatus = $"💻 Windows Integration: Chrome [{(chromeReady ? "✓" : "✗")}]  |  Notepad [✓]  |  Calc [✓]  |  VS Code [{(vsCodeReady ? "✓" : "✗")}]  |  Live Notepad Sync [✓]";
+            GUI.Label(new Rect(startX + 15, laptopStripY + 6, panelW - 30, 20), laptopStatus, _descStyle);
+
             // Bottom Bar: Workspace Quick Actions
-            float botY = cardY + cardH + 18;
+            float botY = laptopStripY + 36;
             GUI.Box(new Rect(startX, botY, panelW, 52), GUIContent.none, _boxStyle);
 
             string curWs = WorkspaceManager.Instance?.ActiveWorkspace?.workspaceName ?? "Default Workspace";

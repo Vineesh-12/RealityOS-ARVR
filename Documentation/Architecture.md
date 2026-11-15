@@ -107,7 +107,15 @@ public interface IManipulationHandler {
   `Application.persistentDataPath/RealityOS/Workspaces/{workspaceId}.json`.
 - Automatic schema validation ensures null collections are defaulted, missing IDs are filled, and extreme scales are clamped to `[0.3, 5.0]`.
 - Corrupt JSON triggers quarantine to `.corrupt.bak`, preventing application crashes.
-- First launch auto-generates the "RealityOS Showcase Workspace" demonstrating all 5 panel types.
+- First launch auto-generates the "RealityOS Showcase Workspace" demonstrating all 6 panel types.
+
+### 3.5. Windows Laptop Integration Layer
+The Windows Laptop Integration Layer bridges RealityOS's 3D spatial computing environment with the physical Windows laptop:
+- **`WindowsApplicationLauncher`**: Enforces a strict security allowlist (Google Chrome, Windows Notepad, Calculator, VS Code, Windows File Explorer). Resolves standard installation paths, validates existence, launches processes safely without arbitrary command injection, and tracks active process handles.
+- **`NotesFileManager`**: Exports RealityOS 3D `NotesPanel` content to physical `.txt` files in `Application.persistentDataPath/NotesDocuments/`. Integrates a `FileSystemWatcher` with a thread-safe main-thread dispatch queue: edits made and saved in Windows Notepad (`Ctrl+S`) trigger immediate live updates to the floating 3D panel inside Unity.
+- **`ExternalWindowManager`**: Interoperates with native Windows Win32 APIs (`user32.dll`: `SetWindowPos`, `FindWindow`, `EnumWindows`, `ShowWindow`). Provides window management presets (`TileSideBySide`, `TileDockRight`) to tile the Unity application alongside external application windows (e.g. Unity on left 50%, Chrome/Notepad on right 50%).
+- **`BrowserLauncher`**: Validates and normalizes web URLs, opening verified HTTP/HTTPS web links in Google Chrome or the system browser with bookmarks for GitHub, Wikipedia, and Unity Docs.
+- **`LaptopConnectPanel`**: An interactive 3D floating panel inheriting `WorkspacePanelBase` providing in-workspace controls for application launching, notes file synchronization, web navigation, and window tiling.
 
 ---
 

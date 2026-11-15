@@ -52,13 +52,20 @@ Traditional operating system windowing paradigms were designed for flat physical
 - **Information Panel**: Descriptive spatial information, system metadata badges, and 3D positioning coordinates.
 - **3D Object Viewer Panel**: Embedded 3D geometric preview model, orbit rotation, zoom adjustment, and auto-spin toggle.
 - **Quick Access Panel**: User-configured navigation shortcuts for rapid scene/mode switching.
+- **Laptop Integration Hub Panel**: Interactive 3D bridge to native Windows applications (Chrome, Notepad, Calc, VS Code, Explorer), two-way live text file sync, and side-by-side window tiling.
 
 ### 4.2. Spatial Manipulation Controls
 - **Kinematic Smoothing**: Smooth interpolation (`Vector3.Lerp`, `Quaternion.Slerp`) using delta time.
 - **Visual Feedback**: Real-time hover tinting and selection glow borders (`#00D2C4` cyan accent).
 - **Preset Arrangements**: One-click arrangement of all active panels into a **3D Curved Arc** or a **Horizontal Grid**.
 
-### 4.3. Local Persistence Engine
+### 4.3. Windows Laptop Integration Layer
+- **Safe Application Launching**: Allowlisted execution of native tools (Google Chrome, Windows Notepad, Calculator, VS Code, Windows File Explorer) with argument sanitization.
+- **Two-Way Real-Time Notepad Synchronization**: Exports 3D note text to physical `.txt` files in `NotesDocuments/`. Integrates a `FileSystemWatcher` to automatically detect when the user edits and saves in Windows Notepad (`Ctrl+S`), immediately reflecting the changes in the 3D Unity scene in real time!
+- **Win32 Window Tiling**: Interoperates with `user32.dll` (`SetWindowPos`, `FindWindow`) to tile Unity on the left half of the laptop screen and external applications (Chrome, Notepad) on the right half.
+- **Spatial Web Browsing**: Validates HTTP/HTTPS URLs and provides one-click bookmarks (GitHub, Wikipedia, Unity 6 Docs).
+
+### 4.4. Local Persistence Engine
 - Workspaces saved atomically to `Application.persistentDataPath/RealityOS/Workspaces/{workspaceId}.json`.
 - Automatic schema validation, boundary clamping, and quarantine recovery for corrupted files.
 - Auto-save timer triggers periodically whenever workspace modifications occur.
@@ -109,6 +116,13 @@ ARVR/
 │       │   │   ├── DesktopCameraController.cs
 │       │   │   ├── DesktopInteractionRaycaster.cs
 │       │   │   └── DesktopUIOverlay.cs
+│       │   ├── LaptopIntegration/
+│       │   │   ├── BrowserLauncher.cs
+│       │   │   ├── ExternalWindowManager.cs
+│       │   │   ├── FileExplorerLauncher.cs
+│       │   │   ├── LaptopConnectPanel.cs
+│       │   │   ├── NotesFileManager.cs
+│       │   │   └── WindowsApplicationLauncher.cs
 │       │   ├── Panels/
 │       │   │   ├── InformationPanel.cs
 │       │   │   ├── NotesPanel.cs
@@ -202,7 +216,7 @@ Run the regression test suite from powershell:
 ```powershell
 python Tests\test_runner.py
 ```
-**Results**: 7 / 7 tests passed (Serialization, Deserialization, Clamping/Validation, CRUD, Clones, Corrupted Recovery, Multi-Workspace discovery).
+**Results**: 10 / 10 tests passed (Serialization, Deserialization, Clamping/Validation, CRUD, Clones, Corrupted Recovery, Multi-Workspace discovery, Application Allowlist, URL Sanitizer, Notes Physical File Sync).
 
 ---
 
@@ -213,9 +227,10 @@ python Tests\test_runner.py
 | **Bootstrap & Initialization** | `Bootstrap.unity` | `ApplicationBootstrap.cs`, `AppModeManager.cs`, `SceneNavigationManager.cs` |
 | **Main Menu & Workspace Manager**| `MainMenu.unity` | `MainMenuUI.cs`, `WorkspaceManager.cs`, `PersistenceService.cs`, `SettingsManager.cs` |
 | **Desktop Spatial Environment** | `DesktopWorkspace.unity` | `DesktopCameraController.cs`, `DesktopInteractionRaycaster.cs`, `DesktopUIOverlay.cs`, `SpatialReferenceGrid.cs` |
+| **Windows Laptop Integration** | `DesktopWorkspace.unity` | `WindowsApplicationLauncher.cs`, `NotesFileManager.cs`, `ExternalWindowManager.cs`, `LaptopConnectPanel.cs`, `BrowserLauncher.cs` |
 | **Mobile AR Surface Detection** | `ARWorkspace.unity` | `ARWorkspaceController.cs`, `ARPlacementReticle.cs`, `ARTouchGestureHandler.cs`, `ARUIOverlay.cs` |
 | **Simulated XR & Locomotion** | `XRSimulator.unity` | `XRSimulatorController.cs`, `XRSimulatedController.cs`, `XRLocomotionProvider.cs` |
-| **Showcase Demonstration** | `DemoWorkspace.unity` | `WorkspacePanelBase.cs`, `NotesPanel.cs`, `TaskBoardPanel.cs`, `InformationPanel.cs`, `ObjectViewerPanel.cs`, `QuickAccessPanel.cs` |
+| **Showcase Demonstration** | `DemoWorkspace.unity` | `WorkspacePanelBase.cs`, `NotesPanel.cs`, `TaskBoardPanel.cs`, `InformationPanel.cs`, `ObjectViewerPanel.cs`, `QuickAccessPanel.cs`, `LaptopConnectPanel.cs` |
 
 ---
 

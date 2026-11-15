@@ -72,9 +72,18 @@ namespace RealityOS.Core
         public static T EnsureManager<T>() where T : MonoBehaviour
         {
             T existing = FindAnyObjectByType<T>();
-            if (existing != null) return existing;
+            if (existing != null)
+            {
+                if (existing.transform.parent != null)
+                {
+                    existing.transform.SetParent(null);
+                }
+                DontDestroyOnLoad(existing.gameObject);
+                return existing;
+            }
 
             GameObject go = new GameObject(typeof(T).Name);
+            go.transform.SetParent(null);
             T comp = go.AddComponent<T>();
             DontDestroyOnLoad(go);
             return comp;

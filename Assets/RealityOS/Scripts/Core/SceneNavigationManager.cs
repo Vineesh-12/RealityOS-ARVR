@@ -13,14 +13,23 @@ namespace RealityOS.Core
         {
             get
             {
-                if (_instance == null)
+                if (_instance == null || !_instance)
                 {
                     _instance = FindAnyObjectByType<SceneNavigationManager>();
-                    if (_instance == null)
+                    if (_instance == null || !_instance)
                     {
                         GameObject go = new GameObject(nameof(SceneNavigationManager));
+                        go.transform.SetParent(null);
                         _instance = go.AddComponent<SceneNavigationManager>();
                         DontDestroyOnLoad(go);
+                    }
+                    else
+                    {
+                        if (_instance.transform.parent != null)
+                        {
+                            _instance.transform.SetParent(null);
+                        }
+                        DontDestroyOnLoad(_instance.gameObject);
                     }
                 }
                 return _instance;
@@ -55,7 +64,31 @@ namespace RealityOS.Core
                 return;
             }
             _instance = this;
+            if (transform.parent != null)
+            {
+                transform.SetParent(null);
+            }
             DontDestroyOnLoad(gameObject);
+        }
+
+        private static void SafeInvoke(Action<string> evt, string sceneName)
+        {
+            if (evt == null) return;
+            foreach (Delegate d in evt.GetInvocationList())
+            {
+                try
+                {
+                    if (d.Target is UnityEngine.Object uObj && uObj == null)
+                    {
+                        continue; // Target destroyed in old scene
+                    }
+                    d.DynamicInvoke(sceneName);
+                }
+                catch (Exception ex)
+                {
+                    Debug.LogWarning($"[RealityOS.SceneNavigation] Skipped stale delegate: {ex.Message}");
+                }
+            }
         }
 
         private void OnDestroy()
@@ -92,7 +125,7 @@ namespace RealityOS.Core
         {
             IsLoading = true;
             LoadingProgress = 0f;
-            OnSceneLoadStarted?.Invoke(sceneName);
+            SafeInvoke(OnSceneLoadStarted, sceneName);
             Debug.Log($"[RealityOS.SceneNavigation] Transitioning to scene: {sceneName}");
 
             AsyncOperation asyncOp = SceneManager.LoadSceneAsync(sceneName);
@@ -112,7 +145,7 @@ namespace RealityOS.Core
             LoadingProgress = 1f;
             IsLoading = false;
             ApplicationBootstrap.EnsureSceneSetup(sceneName);
-            OnSceneLoadCompleted?.Invoke(sceneName);
+            SafeInvoke(OnSceneLoadCompleted, sceneName);
             onComplete?.Invoke();
             Debug.Log($"[RealityOS.SceneNavigation] Finished loading scene: {sceneName}");
         }

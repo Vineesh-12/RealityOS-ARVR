@@ -11,14 +11,23 @@ namespace RealityOS.Core
         {
             get
             {
-                if (_instance == null)
+                if (_instance == null || !_instance)
                 {
                     _instance = FindAnyObjectByType<SettingsManager>();
-                    if (_instance == null)
+                    if (_instance == null || !_instance)
                     {
                         GameObject go = new GameObject(nameof(SettingsManager));
+                        go.transform.SetParent(null);
                         _instance = go.AddComponent<SettingsManager>();
                         DontDestroyOnLoad(go);
+                    }
+                    else
+                    {
+                        if (_instance.transform.parent != null)
+                        {
+                            _instance.transform.SetParent(null);
+                        }
+                        DontDestroyOnLoad(_instance.gameObject);
                     }
                 }
                 return _instance;
@@ -46,6 +55,10 @@ namespace RealityOS.Core
                 return;
             }
             _instance = this;
+            if (transform.parent != null)
+            {
+                transform.SetParent(null);
+            }
             DontDestroyOnLoad(gameObject);
 
             _persistence = new PersistenceService();

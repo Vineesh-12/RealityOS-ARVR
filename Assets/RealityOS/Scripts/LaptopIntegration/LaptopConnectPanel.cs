@@ -4,6 +4,7 @@ using RealityOS.Core;
 using RealityOS.Panels;
 using RealityOS.Persistence;
 using RealityOS.Workspace;
+using RealityOS.UI;
 
 namespace RealityOS.LaptopIntegration
 {
@@ -75,14 +76,14 @@ namespace RealityOS.LaptopIntegration
                 fontStyle = FontStyle.Bold,
                 alignment = TextAnchor.MiddleCenter
             };
-            _panelTitleStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f); // Cyan
+            _panelTitleStyle.normal.textColor = UITheme.PrimaryTeal;
 
             _subTitleStyle = new GUIStyle(GUI.skin.label)
             {
                 fontSize = 11,
                 fontStyle = FontStyle.Bold
             };
-            _subTitleStyle.normal.textColor = new Color(0.8f, 0.85f, 0.95f);
+            _subTitleStyle.normal.textColor = UITheme.PrimaryText;
 
             _btnStyle = new GUIStyle(GUI.skin.button)
             {
@@ -96,7 +97,7 @@ namespace RealityOS.LaptopIntegration
                 fontSize = 11,
                 fontStyle = FontStyle.Bold
             };
-            _accentBtnStyle.normal.textColor = new Color(0.0f, 0.95f, 0.9f);
+            _accentBtnStyle.normal.textColor = UITheme.PrimaryTeal;
 
             _boxStyle = new GUIStyle(GUI.skin.box);
 

@@ -66,19 +66,19 @@ namespace RealityOS.Panels
             Transform canvasTrans = transform.Find("NotesCanvas");
             if (canvasTrans == null)
             {
-                GameObject cObj = new GameObject("NotesCanvas");
+                GameObject cObj = new GameObject("NotesCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
                 cObj.transform.SetParent(transform, false);
                 cObj.transform.localPosition = new Vector3(0f, 0f, -0.025f);
                 cObj.transform.localScale = Vector3.one * 0.001f;
 
-                Canvas c = cObj.AddComponent<Canvas>();
+                Canvas c = cObj.GetComponent<Canvas>();
+                if (c == null) c = cObj.AddComponent<Canvas>();
                 c.renderMode = RenderMode.WorldSpace;
-                var scaler = cObj.AddComponent<CanvasScaler>();
-                scaler.dynamicPixelsPerUnit = 2;
-                cObj.AddComponent<GraphicRaycaster>();
+                var scaler = cObj.GetComponent<CanvasScaler>();
+                if (scaler != null) scaler.dynamicPixelsPerUnit = 2;
 
                 RectTransform rt = cObj.GetComponent<RectTransform>();
-                rt.sizeDelta = new Vector2(850, 600);
+                if (rt != null) rt.sizeDelta = new Vector2(850, 600);
             }
         }
 

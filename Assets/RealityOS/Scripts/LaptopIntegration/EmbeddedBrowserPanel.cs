@@ -70,7 +70,7 @@ namespace RealityOS.LaptopIntegration
             GameObject canvasObj;
             if (canvasTrans == null)
             {
-                canvasObj = new GameObject("BrowserWorldCanvas");
+                canvasObj = new GameObject("BrowserWorldCanvas", typeof(RectTransform), typeof(Canvas), typeof(CanvasScaler), typeof(GraphicRaycaster));
                 canvasObj.transform.SetParent(transform, false);
                 canvasObj.transform.localPosition = new Vector3(0f, 0f, -0.025f);
                 canvasObj.transform.localRotation = Quaternion.identity;
@@ -81,14 +81,15 @@ namespace RealityOS.LaptopIntegration
                 canvasObj = canvasTrans.gameObject;
             }
 
-            _worldCanvas = canvasObj.GetComponent<Canvas>() ?? canvasObj.AddComponent<Canvas>();
+            _worldCanvas = canvasObj.GetComponent<Canvas>();
+            if (_worldCanvas == null) _worldCanvas = canvasObj.AddComponent<Canvas>();
             _worldCanvas.renderMode = RenderMode.WorldSpace;
 
             RectTransform canvasRt = canvasObj.GetComponent<RectTransform>();
-            canvasRt.sizeDelta = new Vector2(960, 680);
+            if (canvasRt != null) canvasRt.sizeDelta = new Vector2(960, 680);
 
-            var scaler = canvasObj.GetComponent<CanvasScaler>() ?? canvasObj.AddComponent<CanvasScaler>();
-            scaler.dynamicPixelsPerUnit = 2;
+            var scaler = canvasObj.GetComponent<CanvasScaler>();
+            if (scaler != null) scaler.dynamicPixelsPerUnit = 2;
 
             if (canvasObj.GetComponent<GraphicRaycaster>() == null)
             {
@@ -110,6 +111,11 @@ namespace RealityOS.LaptopIntegration
             if (_controller != null && _controller.BrowserTexture != null)
             {
                 _viewportImage.texture = _controller.BrowserTexture;
+            }
+
+            if (_inputBridge != null && _viewportImage != null)
+            {
+                _inputBridge.SetViewportRect(_viewportImage.rectTransform);
             }
         }
 
@@ -138,11 +144,14 @@ namespace RealityOS.LaptopIntegration
                     if (_statusBarText != null) _statusBarText.text = url;
                 };
 
-                _controller.Session.OnHistoryStateChanged += (canBack, canForward) =>
+                if (_controller.Session != null)
                 {
-                    if (_backButton != null) _backButton.interactable = canBack;
-                    if (_forwardButton != null) _forwardButton.interactable = canForward;
-                };
+                    _controller.Session.OnHistoryStateChanged += (canBack, canForward) =>
+                    {
+                        if (_backButton != null) _backButton.interactable = canBack;
+                        if (_forwardButton != null) _forwardButton.interactable = canForward;
+                    };
+                }
             }
 
             if (_backButton != null) _backButton.onClick.AddListener(() => _controller?.GoBack());

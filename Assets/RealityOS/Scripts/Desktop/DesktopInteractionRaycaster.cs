@@ -18,6 +18,8 @@ namespace RealityOS.Desktop
         private WorkspacePanelBase _draggingPanel;
         private Plane _dragPlane;
         private Vector3 _dragOffset;
+        private Vector3 _mouseDownPos;
+        private bool _isDraggingActive = false;
         private float _lastClickTime = 0f;
 
         private void Awake()
@@ -123,9 +125,10 @@ namespace RealityOS.Desktop
                             }
                         }
 
-                        // Begin drag on plane perpendicular to camera
+                        // Setup potential drag on plane perpendicular to camera
                         _draggingPanel = panel;
-                        _draggingPanel.BeginManipulation(ManipulationMode.Moving);
+                        _isDraggingActive = false;
+                        _mouseDownPos = Input.mousePosition;
                         _dragPlane = new Plane(-_camera.transform.forward, panel.transform.position);
 
                         if (_dragPlane.Raycast(ray, out float enter))
@@ -145,22 +148,38 @@ namespace RealityOS.Desktop
                 }
             }
 
-            // Dragging
+            // Dragging with threshold to avoid accidental panel motion on click
             if (Input.GetMouseButton(0) && _draggingPanel != null)
             {
-                Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
-                if (_dragPlane.Raycast(ray, out float enter))
+                if (!_isDraggingActive)
                 {
-                    Vector3 point = ray.GetPoint(enter);
-                    _draggingPanel.MoveTo(point + _dragOffset);
+                    if (Vector3.Distance(Input.mousePosition, _mouseDownPos) > 6f)
+                    {
+                        _isDraggingActive = true;
+                        _draggingPanel.BeginManipulation(ManipulationMode.Moving);
+                    }
+                }
+
+                if (_isDraggingActive)
+                {
+                    Ray ray = _camera.ScreenPointToRay(Input.mousePosition);
+                    if (_dragPlane.Raycast(ray, out float enter))
+                    {
+                        Vector3 point = ray.GetPoint(enter);
+                        _draggingPanel.MoveTo(point + _dragOffset);
+                    }
                 }
             }
 
             // Release drag
             if (Input.GetMouseButtonUp(0) && _draggingPanel != null)
             {
-                _draggingPanel.EndManipulation();
+                if (_isDraggingActive)
+                {
+                    _draggingPanel.EndManipulation();
+                }
                 _draggingPanel = null;
+                _isDraggingActive = false;
             }
         }
     }

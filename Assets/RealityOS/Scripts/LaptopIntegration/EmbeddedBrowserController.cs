@@ -26,6 +26,10 @@ namespace RealityOS.LaptopIntegration
 
         private Texture2D _browserTexture;
         private BrowserSessionManager _session;
+        private CdpBrowserService _cdpService;
+        private byte[] _pendingCdpFrame;
+        private bool _isLiveCdpActive = false;
+        private float _cdpHeartbeatTimer = 0f;
         private readonly List<WebLinkHitBox> _interactiveLinks = new List<WebLinkHitBox>();
 
         private float _scrollOffsetY = 0f;
@@ -38,6 +42,7 @@ namespace RealityOS.LaptopIntegration
         public bool IsLoading => _isLoading;
         public string PageTitle => _pageTitle;
         public float ScrollOffsetY => _scrollOffsetY;
+        public bool IsLiveCdpActive => _isLiveCdpActive;
 
         public event Action<Texture2D> OnTextureUpdated;
         public event Action<bool> OnLoadingChanged;
@@ -55,7 +60,52 @@ namespace RealityOS.LaptopIntegration
 
         private void Start()
         {
+            _cdpService = new CdpBrowserService();
+            _cdpService.OnFrameReceived += bytes => _pendingCdpFrame = bytes;
+            _cdpService.OnTitleReceived += title =>
+            {
+                if (!string.IsNullOrEmpty(title))
+                {
+                    _pageTitle = title;
+                    OnPageLoaded?.Invoke(_session.CurrentUrl, _pageTitle);
+                }
+            };
+            _cdpService.OnNavigated += url =>
+            {
+                _isLoading = false;
+                OnLoadingChanged?.Invoke(false);
+            };
+
+            // Start CDP browser asynchronously in background
+            _ = _cdpService.InitializeAsync("https://www.google.com");
+
             NavigateTo("https://www.google.com");
+        }
+
+        private void Update()
+        {
+            if (_pendingCdpFrame != null)
+            {
+                byte[] frame = _pendingCdpFrame;
+                _pendingCdpFrame = null;
+                if (_browserTexture != null)
+                {
+                    _browserTexture.LoadImage(frame);
+                    _isLiveCdpActive = true;
+                    OnTextureUpdated?.Invoke(_browserTexture);
+                }
+            }
+
+            // Periodic refresh for dynamic web content when live CDP is connected
+            if (_isLiveCdpActive && _cdpService != null && _cdpService.IsConnected)
+            {
+                _cdpHeartbeatTimer += Time.deltaTime;
+                if (_cdpHeartbeatTimer >= 1.5f)
+                {
+                    _cdpHeartbeatTimer = 0f;
+                    _ = _cdpService.CaptureScreenshotAsync();
+                }
+            }
         }
 
         private void OnDestroy()
@@ -64,10 +114,18 @@ namespace RealityOS.LaptopIntegration
             {
                 _session.OnNavigated -= HandleSessionNavigated;
             }
+            _cdpService?.Dispose();
+            _cdpService = null;
             if (_browserTexture != null)
             {
                 Destroy(_browserTexture);
             }
+        }
+
+        private void OnApplicationQuit()
+        {
+            _cdpService?.Dispose();
+            _cdpService = null;
         }
 
         public void NavigateTo(string urlOrQuery)
@@ -92,18 +150,39 @@ namespace RealityOS.LaptopIntegration
 
         private void HandleSessionNavigated(string url)
         {
+            if (_cdpService != null && _cdpService.IsConnected)
+            {
+                _isLoading = true;
+                OnLoadingChanged?.Invoke(true);
+                _ = _cdpService.NavigateAsync(url);
+            }
             StartCoroutine(LoadAndRenderPageRoutine(url));
         }
 
         public void Scroll(float deltaY)
         {
-            _scrollOffsetY = Mathf.Clamp(_scrollOffsetY - (deltaY * 60f), 0f, _maxScrollY);
-            RenderCurrentPageToTexture();
+            if (_isLiveCdpActive && _cdpService != null && _cdpService.IsConnected)
+            {
+                _ = _cdpService.SendMouseScrollAsync(_texWidth * 0.5f, _texHeight * 0.5f, deltaY);
+            }
+            else
+            {
+                _scrollOffsetY = Mathf.Clamp(_scrollOffsetY - (deltaY * 60f), 0f, _maxScrollY);
+                RenderCurrentPageToTexture();
+            }
         }
 
         public bool HandlePointerClick(Vector2 normalizedUv)
         {
-            // Check if user clicked any interactive link on the webpage
+            if (_isLiveCdpActive && _cdpService != null && _cdpService.IsConnected)
+            {
+                float px = normalizedUv.x * _texWidth;
+                float py = (1f - normalizedUv.y) * _texHeight;
+                _ = _cdpService.SendMouseClickAsync(px, py);
+                return true;
+            }
+
+            // Check if user clicked any interactive link on the webpage (offline fallback)
             foreach (var link in _interactiveLinks)
             {
                 if (link.UvRect.Contains(normalizedUv))
@@ -114,6 +193,14 @@ namespace RealityOS.LaptopIntegration
                 }
             }
             return false;
+        }
+
+        public void SendKey(string text, string key)
+        {
+            if (_isLiveCdpActive && _cdpService != null && _cdpService.IsConnected)
+            {
+                _ = _cdpService.SendKeyAsync(text, key);
+            }
         }
 
         private IEnumerator LoadAndRenderPageRoutine(string url)

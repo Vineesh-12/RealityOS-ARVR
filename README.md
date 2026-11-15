@@ -60,6 +60,7 @@ Traditional operating system windowing paradigms were designed for flat physical
 - **Preset Arrangements**: One-click arrangement of all active panels into a **3D Curved Arc** or a **Horizontal Grid**.
 
 ### 4.3. Windows Laptop Integration Layer
+- **Embedded 3D Spatial Browser**: Live world-space web browser panel powered by the Chromium DevTools Protocol (CDP). Leverages the host laptop's installed Google Chrome or Microsoft Edge in headless mode to render real Blink web pages directly onto a 3D texture, with interactive mouse clicks, scrolling, and keyboard typing, backed by a high-resolution offline fallback rasterizer.
 - **Safe Application Launching**: Allowlisted execution of native tools (Google Chrome, Windows Notepad, Calculator, VS Code, Windows File Explorer) with argument sanitization.
 - **Two-Way Real-Time Notepad Synchronization**: Exports 3D note text to physical `.txt` files in `NotesDocuments/`. Integrates a `FileSystemWatcher` to automatically detect when the user edits and saves in Windows Notepad (`Ctrl+S`), immediately reflecting the changes in the 3D Unity scene in real time!
 - **Win32 Window Tiling**: Interoperates with `user32.dll` (`SetWindowPos`, `FindWindow`) to tile Unity on the left half of the laptop screen and external applications (Chrome, Notepad) on the right half.
@@ -117,7 +118,12 @@ ARVR/
 │       │   │   ├── DesktopInteractionRaycaster.cs
 │       │   │   └── DesktopUIOverlay.cs
 │       │   ├── LaptopIntegration/
+│       │   │   ├── BrowserInputBridge.cs
 │       │   │   ├── BrowserLauncher.cs
+│       │   │   ├── BrowserSessionManager.cs
+│       │   │   ├── CdpBrowserService.cs
+│       │   │   ├── EmbeddedBrowserController.cs
+│       │   │   ├── EmbeddedBrowserPanel.cs
 │       │   │   ├── ExternalWindowManager.cs
 │       │   │   ├── FileExplorerLauncher.cs
 │       │   │   ├── LaptopConnectPanel.cs

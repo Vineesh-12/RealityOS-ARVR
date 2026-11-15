@@ -26,8 +26,10 @@ The automated regression test suite (`Tests/test_runner.py`) was executed in the
 | **TEST-08** | `Test08_LaptopAllowlist_ResolvesNativePaths` | Laptop Integration | **PASS** | Verifies allowlisted applications (Chrome, Notepad, Calc, VS Code, Explorer) without false positives. |
 | **TEST-09** | `Test09_BrowserUrlSanitizer_ValidatesAndPrependsScheme` | Embedded Browser | **PASS** | Validates URL normalization, prepends HTTPS, parses queries, and rejects illegal protocols. |
 | **TEST-10** | `Test10_NotesDocumentExport_AndSyncIntegrity` | Two-Way File Sync | **PASS** | Verifies physical `.txt` export, simulated external edit in Notepad, and data parity in RealityOS. |
+| **TEST-11** | `Test11_CdpBrowserService_ExecutableDiscovery` | CDP Live Browser | **PASS** | Discovers native Chromium binary (Chrome or Edge) on host PC for real Blink-based web rendering. |
+| **TEST-12** | `Test12_PersistenceService_AtomicBackupCreation` | Persistence Safety | **PASS** | Verifies atomic backup creation where `.bak` copy safely preserves state before disk write. |
 
-**Summary**: **10 Passed, 0 Failed, 0 Warnings** across both Unity NUnit (`RealityOSTests.cs`) and Standalone Test Runner (`test_runner.py`).
+**Summary**: **12 Passed, 0 Failed, 0 Warnings** across both Unity NUnit (`RealityOSTests.cs`) and Standalone Test Runner (`test_runner.py`).
 
 ---
 

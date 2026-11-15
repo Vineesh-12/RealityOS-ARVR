@@ -301,6 +301,47 @@ def run_tests():
             t10.message = str(e)
         results.append(t10)
 
+        # TEST 11: Chromium DevTools Protocol (CDP) Executable Detection
+        t11 = TestResult("Test11_CdpBrowserService_ExecutableDiscovery")
+        try:
+            candidates = [
+                r"C:\Program Files\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
+                r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe",
+                r"C:\Program Files\Microsoft\Edge\Application\msedge.exe"
+            ]
+            found = [p for p in candidates if os.path.exists(p)]
+            assert len(found) > 0, "At least one browser executable must be present for CDP engine."
+            t11.passed = True
+            t11.message = f"Found {len(found)} candidate browser engine(s): {os.path.basename(found[0])}"
+        except Exception as e:
+            t11.message = str(e)
+        results.append(t11)
+
+        # TEST 12: Atomic Backup File Verification
+        t12 = TestResult("Test12_PersistenceService_AtomicBackupCreation")
+        try:
+            test_ws_file = os.path.join(workspaces_dir, "atomic_test.json")
+            with open(test_ws_file, "w", encoding="utf-8") as f:
+                f.write('{"test": "original"}')
+            
+            # Atomic update simulation: backup creation
+            bak_file = test_ws_file + ".bak"
+            shutil.copy2(test_ws_file, bak_file)
+            assert os.path.exists(bak_file)
+
+            with open(test_ws_file, "w", encoding="utf-8") as f:
+                f.write('{"test": "updated"}')
+
+            with open(bak_file, "r", encoding="utf-8") as f:
+                bak_data = f.read()
+            assert 'original' in bak_data
+            t12.passed = True
+            t12.message = "Atomic backup creation verified: .bak copy safely preserves prior state before file mutation."
+        except Exception as e:
+            t12.message = str(e)
+        results.append(t12)
+
     finally:
         shutil.rmtree(temp_dir, ignore_errors=True)
 

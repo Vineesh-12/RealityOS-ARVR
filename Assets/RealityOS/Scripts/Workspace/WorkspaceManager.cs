@@ -14,14 +14,23 @@ namespace RealityOS.Workspace
         {
             get
             {
-                if (_instance == null)
+                if (_instance == null || !_instance)
                 {
                     _instance = FindAnyObjectByType<WorkspaceManager>();
-                    if (_instance == null)
+                    if (_instance == null || !_instance)
                     {
                         GameObject go = new GameObject(nameof(WorkspaceManager));
+                        go.transform.SetParent(null);
                         _instance = go.AddComponent<WorkspaceManager>();
                         DontDestroyOnLoad(go);
+                    }
+                    else
+                    {
+                        if (_instance.transform.parent != null)
+                        {
+                            _instance.transform.SetParent(null);
+                        }
+                        DontDestroyOnLoad(_instance.gameObject);
                     }
                 }
                 return _instance;
@@ -91,6 +100,10 @@ namespace RealityOS.Workspace
                 return;
             }
             _instance = this;
+            if (transform.parent != null)
+            {
+                transform.SetParent(null);
+            }
             DontDestroyOnLoad(gameObject);
 
             if (_persistence == null) _persistence = new PersistenceService();
@@ -302,6 +315,10 @@ namespace RealityOS.Workspace
         public GameObject SpawnPanel(PanelType type, Vector3? spawnPosition = null)
         {
             GameObject prefab = GetPrefabForType(type);
+            if (prefab == null)
+            {
+                prefab = Resources.Load<GameObject>($"Panels/{type}Panel");
+            }
             Vector3 pos = spawnPosition ?? GetDefaultSpawnPosition();
 
             GameObject instance;

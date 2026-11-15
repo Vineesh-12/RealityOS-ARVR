@@ -40,11 +40,38 @@ namespace RealityOS.LaptopIntegration
             {
                 _controller.Scroll(scroll);
             }
+
+            // Forward physical keyboard input to live browser when hovered
+            if (_isHovered && Input.anyKeyDown)
+            {
+                string inputString = Input.inputString;
+                if (!string.IsNullOrEmpty(inputString))
+                {
+                    foreach (char c in inputString)
+                    {
+                        string s = c.ToString();
+                        _controller.SendKey(s, s);
+                    }
+                }
+                else if (Input.GetKeyDown(KeyCode.Return) || Input.GetKeyDown(KeyCode.KeypadEnter))
+                {
+                    _controller.SendKey("\r", "Enter");
+                }
+                else if (Input.GetKeyDown(KeyCode.Backspace))
+                {
+                    _controller.SendKey("", "Backspace");
+                }
+            }
         }
 
         public void SetHovered(bool hovered)
         {
             _isHovered = hovered;
+        }
+
+        public void SetViewportRect(RectTransform rt)
+        {
+            _viewportRect = rt;
         }
 
         public void OnPointerClick(PointerEventData eventData)

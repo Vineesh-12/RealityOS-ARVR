@@ -6,7 +6,30 @@ namespace RealityOS.Core
 {
     public class SettingsManager : MonoBehaviour
     {
-        public static SettingsManager Instance { get; private set; }
+        private static SettingsManager _instance;
+        public static SettingsManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindAnyObjectByType<SettingsManager>();
+                    if (_instance == null)
+                    {
+                        GameObject go = new GameObject(nameof(SettingsManager));
+                        _instance = go.AddComponent<SettingsManager>();
+                        DontDestroyOnLoad(go);
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+        }
 
         [SerializeField] private AppSettingsData _currentSettings = new AppSettingsData();
         public AppSettingsData Current => _currentSettings;
@@ -17,26 +40,36 @@ namespace RealityOS.Core
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (_instance != null && _instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
 
             _persistence = new PersistenceService();
             LoadSettings();
         }
 
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                _instance = null;
+            }
+        }
+
         public void LoadSettings()
         {
+            if (_persistence == null) _persistence = new PersistenceService();
             _currentSettings = _persistence.LoadSettings();
             ApplySettings();
         }
 
         public void SaveSettings()
         {
+            if (_persistence == null) _persistence = new PersistenceService();
             _persistence.SaveSettings(_currentSettings);
             ApplySettings();
             OnSettingsChanged?.Invoke(_currentSettings);
@@ -95,4 +128,3 @@ namespace RealityOS.Core
         }
     }
 }
-

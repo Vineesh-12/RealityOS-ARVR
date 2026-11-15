@@ -5,7 +5,30 @@ namespace RealityOS.Core
 {
     public class AppModeManager : MonoBehaviour
     {
-        public static AppModeManager Instance { get; private set; }
+        private static AppModeManager _instance;
+        public static AppModeManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindAnyObjectByType<AppModeManager>();
+                    if (_instance == null)
+                    {
+                        GameObject go = new GameObject(nameof(AppModeManager));
+                        _instance = go.AddComponent<AppModeManager>();
+                        DontDestroyOnLoad(go);
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+        }
 
         [SerializeField] private InteractionMode _currentMode = InteractionMode.DesktopSpatial;
         public InteractionMode CurrentMode => _currentMode;
@@ -14,13 +37,21 @@ namespace RealityOS.Core
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (_instance != null && _instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                _instance = null;
+            }
         }
 
         public void SetMode(InteractionMode mode)
@@ -53,7 +84,7 @@ namespace RealityOS.Core
                     else
                     {
                         limitationReason = "Mobile AR requires an ARCore-compatible Android device. Running on Desktop will use camera simulation/fallback.";
-                        return true; // Still allow entering scene for editor testing/inspection
+                        return true;
                     }
 
                 default:
@@ -63,4 +94,3 @@ namespace RealityOS.Core
         }
     }
 }
-

@@ -9,11 +9,41 @@ namespace RealityOS.Workspace
 {
     public class WorkspaceManager : MonoBehaviour
     {
-        public static WorkspaceManager Instance { get; private set; }
+        private static WorkspaceManager _instance;
+        public static WorkspaceManager Instance
+        {
+            get
+            {
+                if (_instance == null)
+                {
+                    _instance = FindAnyObjectByType<WorkspaceManager>();
+                    if (_instance == null)
+                    {
+                        GameObject go = new GameObject(nameof(WorkspaceManager));
+                        _instance = go.AddComponent<WorkspaceManager>();
+                        DontDestroyOnLoad(go);
+                    }
+                }
+                return _instance;
+            }
+        }
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _instance = null;
+        }
 
         [Header("Persistence")]
         private PersistenceService _persistence;
-        public IWorkspacePersistence Persistence => _persistence;
+        public IWorkspacePersistence Persistence
+        {
+            get
+            {
+                if (_persistence == null) _persistence = new PersistenceService();
+                return _persistence;
+            }
+        }
 
         [Header("Active Workspace State")]
         [SerializeField] private WorkspaceData _activeWorkspace;
@@ -53,15 +83,15 @@ namespace RealityOS.Workspace
 
         private void Awake()
         {
-            if (Instance != null && Instance != this)
+            if (_instance != null && _instance != this)
             {
                 Destroy(gameObject);
                 return;
             }
-            Instance = this;
+            _instance = this;
             DontDestroyOnLoad(gameObject);
 
-            _persistence = new PersistenceService();
+            if (_persistence == null) _persistence = new PersistenceService();
 
             if (_activeWorkspace == null)
             {
@@ -75,6 +105,14 @@ namespace RealityOS.Workspace
                     _activeWorkspace = PersistenceService.CreateSampleDemonstrationWorkspace();
                     _persistence.SaveWorkspace(_activeWorkspace);
                 }
+            }
+        }
+
+        private void OnDestroy()
+        {
+            if (_instance == this)
+            {
+                _instance = null;
             }
         }
 
@@ -139,14 +177,14 @@ namespace RealityOS.Workspace
         {
             ClearPanelsInScene();
             _activeWorkspace = new WorkspaceData(name, description);
-            _persistence.SaveWorkspace(_activeWorkspace);
+            Persistence.SaveWorkspace(_activeWorkspace);
             _isDirty = false;
             OnWorkspaceLoaded?.Invoke(_activeWorkspace);
         }
 
         public bool LoadWorkspaceById(string id)
         {
-            WorkspaceData ws = _persistence.LoadWorkspace(id);
+            WorkspaceData ws = Persistence.LoadWorkspace(id);
             if (ws != null)
             {
                 _activeWorkspace = ws;
@@ -164,7 +202,6 @@ namespace RealityOS.Workspace
 
             PruneDeadPanels();
 
-            // Collect current states from active panels
             _activeWorkspace.panels.Clear();
             foreach (var panel in _activePanels)
             {
@@ -174,7 +211,7 @@ namespace RealityOS.Workspace
                 }
             }
 
-            bool success = _persistence.SaveWorkspace(_activeWorkspace);
+            bool success = Persistence.SaveWorkspace(_activeWorkspace);
             if (success)
             {
                 _isDirty = false;
@@ -186,10 +223,10 @@ namespace RealityOS.Workspace
 
         public bool DeleteWorkspace(string id)
         {
-            bool deleted = _persistence.DeleteWorkspace(id);
+            bool deleted = Persistence.DeleteWorkspace(id);
             if (deleted && _activeWorkspace != null && _activeWorkspace.workspaceId == id)
             {
-                List<WorkspaceData> remaining = _persistence.GetAllWorkspaces();
+                List<WorkspaceData> remaining = Persistence.GetAllWorkspaces();
                 if (remaining.Count > 0)
                 {
                     LoadWorkspaceById(remaining[0].workspaceId);

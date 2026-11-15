@@ -13,6 +13,12 @@ namespace RealityOS.Core
 
         private static bool _isInitialized = false;
 
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+        private static void ResetStatics()
+        {
+            _isInitialized = false;
+        }
+
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
         public static void AutoBootstrapOnPlay()
         {
